@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>پنل مدیریت — آزمون مربیگری</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0 }
+  :root {
+    --indigo: #4f46e5; --indigo-d: #3730a3; --violet: #7c3aed;
+    --bg: #f1f5f9; --card: #ffffff; --ink: #1e293b; --mut: #64748b;
+    --ok: #059669; --bad: #e11d48; --warn: #d97706; --line: #e2e8f0;
+  }
+  body { font-family: Tahoma, 'Vazirmatn', 'Segoe UI', sans-serif; background: var(--bg); color: var(--ink); min-height: 100vh }
+  button { font-family: inherit; cursor: pointer }
+  input, textarea, select { font-family: inherit; font-size: 14px }
+
+  /* ─── login ─── */
+  #login { min-height: 100vh; display: grid; place-items: center; padding: 20px }
+  .login-card { background: var(--card); border-radius: 20px; padding: 32px 28px; width: 100%; max-width: 380px;
+    box-shadow: 0 20px 50px -20px rgba(79,70,229,.35); border: 1px solid var(--line) }
+  .login-card h1 { font-size: 20px; font-weight: 800; margin-bottom: 4px }
+  .login-card p { font-size: 12px; color: var(--mut); margin-bottom: 20px }
+  .field { width: 100%; padding: 11px 14px; border: 1.5px solid var(--line); border-radius: 12px; margin-bottom: 12px; outline: none }
+  .field:focus { border-color: var(--indigo) }
+  .btn { width: 100%; padding: 12px; border: none; border-radius: 12px; font-weight: 800; font-size: 14px;
+    background: linear-gradient(to left, var(--indigo-d), var(--indigo)); color: #fff }
+  .btn:disabled { opacity: .6 }
+  .err { color: var(--bad); font-size: 12px; font-weight: 700; margin: 8px 0; min-height: 16px }
+
+  /* ─── shell ─── */
+  header { background: linear-gradient(to left, var(--indigo-d), var(--violet)); color: #fff; padding: 14px 20px;
+    display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10 }
+  header h1 { font-size: 16px; font-weight: 800 }
+  header .who { font-size: 11px; opacity: .85 }
+  .logout { background: rgba(255,255,255,.15); border: none; color: #fff; border-radius: 9px; padding: 6px 12px; font-size: 12px; font-weight: 700 }
+  .logout:hover { background: rgba(255,255,255,.28) }
+
+  nav.tabs { display: flex; gap: 6px; padding: 12px 20px 0; overflow-x: auto }
+  nav.tabs button { border: 1.5px solid var(--line); background: var(--card); padding: 8px 16px; border-radius: 11px;
+    font-size: 12.5px; font-weight: 700; color: var(--mut); white-space: nowrap }
+  nav.tabs button.on { background: var(--indigo); border-color: var(--indigo); color: #fff }
+
+  main { padding: 16px 20px 60px; max-width: 1100px; margin: 0 auto }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px }
+  .stat { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px }
+  .stat b { display: block; font-size: 20px; margin-top: 6px }
+  .stat span { font-size: 11.5px; color: var(--mut) }
+
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 14px; overflow: hidden }
+  .search { display: flex; gap: 10px; margin-bottom: 12px }
+  .search .field { margin: 0; flex: 1 }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px }
+  th { background: #f8fafc; color: var(--mut); font-size: 11px; padding: 10px 12px; text-align: right; border-bottom: 1px solid var(--line) }
+  td { padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: middle }
+  tr:last-child td { border: none }
+  .pill { display: inline-block; padding: 3px 9px; border-radius: 99px; font-size: 10.5px; font-weight: 700 }
+  .pill.ok { background: #d1fae5; color: var(--ok) }
+  .pill.off { background: #f1f5f9; color: var(--mut) }
+  .pill.pending { background: #fef3c7; color: var(--warn) }
+  .pill.paid { background: #d1fae5; color: var(--ok) }
+  .pill.expired, .pill.canceled, .pill.failed { background: #ffe4e6; color: var(--bad) }
+  .mini { border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 5px 10px; font-size: 11px; font-weight: 700 }
+  .mini.grant { border-color: var(--ok); color: var(--ok) }
+  .mini.revoke { border-color: var(--bad); color: var(--bad) }
+  .mini.del { border: none; background: none; color: #cbd5e1; font-size: 14px }
+  .mini.del:hover { color: var(--bad) }
+  select.plan { border: 1px solid var(--line); border-radius: 8px; padding: 4px 6px; font-size: 11px }
+  .muted { color: var(--mut); font-size: 11px }
+  .ltr { direction: ltr; unicode-bidi: embed }
+
+  .fb-item, .ann-item { padding: 14px 16px; border-bottom: 1px solid var(--line) }
+  .fb-item:last-child, .ann-item:last-child { border: none }
+  .fb-head, .ann-head { display: flex; justify-content: space-between; align-items: center; gap: 10px }
+  .stars { color: #f59e0b; letter-spacing: 2px; font-size: 13px }
+  .fb-text, .ann-body { font-size: 13px; color: #475569; margin-top: 6px; line-height: 1.8; white-space: pre-wrap }
+  .form { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 14px }
+  .form h3 { font-size: 13px; font-weight: 800; margin-bottom: 12px }
+  textarea.field { min-height: 90px; resize: vertical }
+  .empty { text-align: center; color: var(--mut); font-size: 13px; padding: 40px 10px }
+  .toast { position: fixed; bottom: 20px; right: 50%; transform: translateX(50%); background: #0f172a; color: #fff;
+    padding: 10px 20px; border-radius: 12px; font-size: 13px; font-weight: 700; z-index: 99; box-shadow: 0 10px 30px rgba(0,0,0,.3) }
+  .wrap-scroll { overflow-x: auto }
+  #app.hidden, .hidden { display: none !important }
+</style>
+</head>
+<body>
+
+<!-- ─── ورود ─── -->
+<div id="login">
+  <form class="login-card" id="loginForm">
+    <h1>پنل مدیریت</h1>
+    <p>آزمون مربیگری بدنسازی و فیتنس — ورود با حساب مدیر</p>
+    <input class="field ltr" id="phone" placeholder="شماره موبایل" inputmode="numeric" autocomplete="username" required>
+    <input class="field" id="password" type="password" placeholder="رمز عبور" autocomplete="current-password" required>
+    <div class="err" id="loginErr"></div>
+    <button class="btn" id="loginBtn">ورود</button>
+  </form>
+</div>
+
+<!-- ─── داشبرد ─── -->
+<div id="app" class="hidden">
+  <header>
+    <div>
+      <h1>پنل مدیریت آزمون مربیگری</h1>
+      <div class="who" id="who"></div>
+    </div>
+    <button class="logout" id="logoutBtn">خروج</button>
+  </header>
+
+  <nav class="tabs" id="tabs">
+    <button data-t="dash" class="on">نمای کلی</button>
+    <button data-t="users">کاربران</button>
+    <button data-t="orders">سفارش‌ها</button>
+    <button data-t="reviews">نظرها</button>
+    <button data-t="anns">اعلان‌ها</button>
+  </nav>
+
+  <main>
+    <!-- نمای کلی -->
+    <section id="t-dash">
+      <div class="cards" id="statCards"></div>
+      <div class="panel" style="margin-top:14px">
+        <div class="fb-head" style="padding:14px 16px"><b style="font-size:13px">آخرین کاربران</b></div>
+        <div class="wrap-scroll"><table id="recentUsers"></table></div>
+      </div>
+    </section>
+
+    <!-- کاربران -->
+    <section id="t-users" class="hidden">
+      <div class="search"><input class="field" id="userQ" placeholder="جست‌وجوی نام یا شماره موبایل…"></div>
+      <div class="panel wrap-scroll"><table id="usersTable"></table></div>
+    </section>
+
+    <!-- سفارش‌ها -->
+    <section id="t-orders" class="hidden">
+      <div class="panel wrap-scroll"><table id="ordersTable"></table></div>
+    </section>
+
+    <!-- نظرها -->
+    <section id="t-reviews" class="hidden"><div class="panel" id="fbList"></div></section>
+
+    <!-- اعلان‌ها -->
+    <section id="t-anns" class="hidden">
+      <form class="form" id="annForm">
+        <h3>اعلان جدید</h3>
+        <input class="field" id="annTitle" placeholder="عنوان اعلان" required>
+        <textarea class="field" id="annBody" placeholder="متن اعلان برای همهٔ کاربران…" required></textarea>
+        <button class="btn" style="width:auto;padding:10px 28px">انتشار</button>
+      </form>
+      <div class="panel" id="annList"></div>
+    </section>
+  </main>
+</div>
+
+<script>
+const TOKEN_KEY = 'azmoon_admin_token'
+const fa = (n) => Number(n ?? 0).toLocaleString('fa-IR')
+const faDate = (ts) => ts ? new Date(ts).toLocaleDateString('fa-IR', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'
+const faDT = (ts) => ts ? new Date(ts).toLocaleString('fa-IR', { dateStyle: 'medium', timeStyle: 'short' }) : '—'
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
+
+const token = () => localStorage.getItem(TOKEN_KEY)
+
+async function call(path, { method = 'GET', body } = {}) {
+  const r = await fetch('/api' + path, {
+    method,
+    headers: { 'content-type': 'application/json', authorization: 'Bearer ' + token() },
+    body: body ? JSON.stringify(body) : undefined,
+  })
+  if (r.status === 401) { logout(); throw new Error('نشست منقضی شد') }
+  if (r.status === 403) { logout(); throw new Error('دسترسی فقط برای مدیر است') }
+  const d = await r.json().catch(() => ({}))
+  if (!r.ok) throw new Error(d.error || 'خطای ' + r.status)
+  return d
+}
+
+function toast(msg) {
+  const t = document.createElement('div')
+  t.className = 'toast'
+  t.textContent = msg
+  document.body.appendChild(t)
+  setTimeout(() => t.remove(), 2600)
+}
+
+function logout() {
+  localStorage.removeItem(TOKEN_KEY)
+  document.getElementById('app').classList.add('hidden')
+  document.getElementById('login').classList.remove('hidden')
+}
+
+/* ─── لاگین ─── */
+document.getElementById('loginForm').onsubmit = async (e) => {
+  e.preventDefault()
+  const btn = document.getElementById('loginBtn')
+  const err = document.getElementById('loginErr')
+  err.textContent = ''
+  btn.disabled = true
+  try {
+    const r = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ phone: document.getElementById('phone').value.trim(), password: document.getElementById('password').value }),
+    })
+    const d = await r.json()
+    if (!r.ok) throw new Error(d.error || 'ورود ناموفق')
+    if (!d.user?.admin) throw new Error('این حساب دسترسی مدیریت ندارد')
+    localStorage.setItem(TOKEN_KEY, d.token)
+    document.getElementById('who').textContent = d.user.name + ' • ' + d.user.phone
+    enter()
+  } catch (x) {
+    err.textContent = x.message
+  } finally {
+    btn.disabled = false
+  }
+}
+
+function enter() {
+  document.getElementById('login').classList.add('hidden')
+  document.getElementById('app').classList.remove('hidden')
+  switchTab('dash')
+}
+
+document.getElementById('logoutBtn').onclick = async () => {
+  try { await call('/logout', { method: 'POST' }) } catch {}
+  logout()
+}
+
+/* ─── تب‌ها ─── */
+const loaders = { dash: loadDash, users: loadUsers, orders: loadOrders, reviews: loadReviews, anns: loadAnns }
+function switchTab(t) {
+  document.querySelectorAll('#tabs button').forEach((b) => b.classList.toggle('on', b.dataset.t === t))
+  for (const id of Object.keys(loaders)) document.getElementById('t-' + id).classList.toggle('hidden', id !== t)
+  loaders[t]()
+}
+document.getElementById('tabs').onclick = (e) => { if (e.target.dataset.t) switchTab(e.target.dataset.t) }
+
+/* ─── نمای کلی ─── */
+async function loadDash() {
+  const o = await call('/admin/overview')
+  const cards = [
+    ['کاربران', fa(o.users)], ['مشترکین فعال', fa(o.activeSubs)],
+    ['آزمون‌های برگزارشده', fa(o.attempts)], ['میانگین نمره', fa(o.avgScore) + '٪'],
+    ['درآمد (تومان)', fa(Math.round((o.revenueRial || 0) / 10))],
+    ['سفارش موفق / در انتظار', fa(o.paidOrders) + ' / ' + fa(o.pendingOrders)],
+    ['سوال در بانک', fa(o.questions)], ['آزمون ساخته‌شده', fa(o.generated)],
+    ['نظرها / اعلان‌ها', fa(o.feedback) + ' / ' + fa(o.announcements)],
+  ]
+  document.getElementById('statCards').innerHTML = cards.map(([l, v]) => `<div class="stat"><span>${l}</span><b>${v}</b></div>`).join('')
+  const u = await call('/admin/users')
+  document.getElementById('recentUsers').innerHTML =
+    '<tr><th>نام</th><th>موبایل</th><th>اشتراک</th><th>آزمون</th><th>عضویت</th></tr>' +
+    u.list.slice(0, 5).map((x) => `<tr><td>${esc(x.name)}</td><td class="ltr">${x.phone}</td>
+      <td>${subPill(x.subscription)}</td><td>${fa(x.exams)}</td><td class="muted">${faDate(x.createdAt)}</td></tr>`).join('')
+}
+
+/* ─── کاربران ─── */
+const PLANS = [['monthly', '۱ ماهه'], ['quarterly', '۳ ماهه'], ['yearly', '۱۲ ماهه']]
+let usersCache = []
+async function loadUsers() {
+  const d = await call('/admin/users')
+  usersCache = d.list
+  renderUsers()
+}
+function subPill(s) {
+  const on = s && s.until > Date.now()
+  return on ? `<span class="pill ok">فعال تا ${faDate(s.until)}</span>` : '<span class="pill off">—</span>'
+}
+function renderUsers() {
+  const q = document.getElementById('userQ').value.trim()
+  const list = usersCache.filter((u) => !q || (u.name || '').includes(q) || (u.phone || '').includes(q))
+  document.getElementById('usersTable').innerHTML =
+    '<tr><th>نام</th><th>موبایل</th><th>اشتراک</th><th>امتیاز</th><th>استریک</th><th>آزمون</th><th>آخرین فعالیت</th><th>عملیات</th></tr>' +
+    (list.length ? list.map((u) => `<tr>
+      <td>${esc(u.name)}${u.admin ? ' <span class="pill ok">مدیر</span>' : ''}</td>
+      <td class="ltr">${u.phone}</td>
+      <td>${subPill(u.subscription)}</td>
+      <td>${fa(u.points)}</td><td>${fa(u.streak)}</td><td>${fa(u.exams)}</td>
+      <td class="muted">${faDT(u.lastAttemptAt)}</td>
+      <td>${u.admin ? '' : `<select class="plan" data-u="${u.id}">
+          <option value="">اعطای اشتراک…</option>
+          ${PLANS.map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}
+        </select>
+        ${u.subscription ? `<button class="mini revoke" data-revoke="${u.id}">لغو</button>` : ''}`}
+      </td>
+    </tr>`).join('') : '<tr><td colspan="8" class="empty">کاربری یافت نشد</td></tr>')
+}
+document.getElementById('userQ').oninput = renderUsers
+document.getElementById('usersTable').onclick = async (e) => {
+  const revoke = e.target.dataset.revoke
+  if (revoke && confirm('اشتراک این کاربر لغو شود؟')) {
+    await call(`/admin/users/${revoke}/subscription`, { method: 'DELETE' }).then(loadUsers).then(() => toast('اشتراک لغو شد'))
+  }
+}
+document.getElementById('usersTable').onchange = async (e) => {
+  if (e.target.classList.contains('plan') && e.target.value) {
+    await call(`/admin/users/${e.target.dataset.u}/subscription`, { method: 'POST', body: { plan: e.target.value } })
+      .then(loadUsers).then(() => toast('اشتراک فعال شد')).catch((x) => toast(x.message))
+  }
+}
+
+/* ─── سفارش‌ها ─── */
+const ST = { pending: 'در انتظار', paid: 'پرداخت‌شده', expired: 'منقضی', canceled: 'لغوشده', failed: 'ناموفق' }
+async function loadOrders() {
+  const d = await call('/admin/orders')
+  document.getElementById('ordersTable').innerHTML =
+    '<tr><th>کاربر</th><th>پلن</th><th>مبلغ (تومان)</th><th>وضعیت</th><th>تاریخ</th><th>شناسه تراکنش</th></tr>' +
+    (d.list.length ? d.list.map((o) => `<tr>
+      <td>${esc(o.userName)}<div class="muted ltr">${o.userPhone}</div></td>
+      <td>${esc(o.planTitle)}</td>
+      <td>${fa(Math.round((o.amountRial || 0) / 10))}</td>
+      <td><span class="pill ${o.status}">${ST[o.status] || o.status}</span></td>
+      <td class="muted">${faDT(o.createdAt)}</td>
+      <td class="muted ltr" style="font-size:10px">${esc(o.chargeId || '—')}</td>
+    </tr>`).join('') : '<tr><td colspan="6" class="empty">سفارشی ثبت نشده</td></tr>')
+}
+
+/* ─── نظرها ─── */
+async function loadReviews() {
+  const d = await call('/admin/feedback')
+  document.getElementById('fbList').innerHTML = d.list.length ? d.list.map((f) => `<div class="fb-item">
+    <div class="fb-head">
+      <span><b style="font-size:12.5px">${esc(f.name)}</b> <span class="muted ltr">${f.phone}</span></span>
+      <span class="stars">${'★'.repeat(f.rating)}${'☆'.repeat(5 - f.rating)}</span>
+      <span class="muted">${faDate(f.createdAt)}</span>
+      <button class="mini del" data-fb="${f.id}" title="حذف">✕</button>
+    </div>
+    <div class="fb-text">${esc(f.text)}</div>
+  </div>`).join('') : '<div class="empty">نظری ثبت نشده</div>'
+}
+document.getElementById('fbList').onclick = async (e) => {
+  const id = e.target.dataset.fb
+  if (id && confirm('این نظر حذف شود؟')) {
+    await call(`/admin/feedback/${id}`, { method: 'DELETE' }).then(loadReviews).then(() => toast('نظر حذف شد'))
+  }
+}
+
+/* ─── اعلان‌ها ─── */
+document.getElementById('annForm').onsubmit = async (e) => {
+  e.preventDefault()
+  await call('/announcements', { method: 'POST', body: { title: annTitle.value, body: annBody.value } })
+    .then(() => { annTitle.value = ''; annBody.value = ''; loadAnns(); toast('اعلان منتشر شد') })
+    .catch((x) => toast(x.message))
+}
+async function loadAnns() {
+  const d = await call('/announcements')
+  document.getElementById('annList').innerHTML = d.list.length ? d.list.map((a) => `<div class="ann-item">
+    <div class="ann-head">
+      <b style="font-size:13px">${esc(a.title)}</b>
+      <span><span class="muted">${faDate(a.createdAt)}</span>
+      <button class="mini del" data-ann="${a.id}" title="حذف">✕</button></span>
+    </div>
+    <div class="ann-body">${esc(a.body)}</div>
+  </div>`).join('') : '<div class="empty">اعلانی منتشر نشده</div>'
+}
+document.getElementById('annList').onclick = async (e) => {
+  const id = e.target.dataset.ann
+  if (id && confirm('این اعلان حذف شود؟')) {
+    await call(`/announcements/${id}`, { method: 'DELETE' }).then(loadAnns).then(() => toast('اعلان حذف شد'))
+  }
+}
+
+/* اگر نشست قبلی هنوز معتبر است مستقیم وارد شو */
+if (token()) {
+  call('/me').then((d) => {
+    if (d.user?.admin) { document.getElementById('who').textContent = d.user.name + ' • ' + d.user.phone; enter() }
+    else logout()
+  }).catch(logout)
+}
+</script>
+</body>
+</html>

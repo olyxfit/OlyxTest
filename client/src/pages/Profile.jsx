@@ -87,15 +87,15 @@ export default function Profile() {
 
         {user?.admin && (
           <button
-            onClick={() => nav('/panel?tab=admin')}
+            onClick={() => openExternal(apiUrl('/admin'))}
             className="card w-full p-4 flex items-center gap-3 hover:border-violet-500/40 transition-colors text-right border-violet-200 bg-violet-50/50"
           >
             <span className="size-10 rounded-xl bg-gradient-to-br from-violet-500 to-violet-700 grid place-items-center shadow-lg shadow-violet-500/25">
               <ShieldCheck className="size-5 text-white" />
             </span>
             <div className="flex-1 min-w-0">
-              <div className="font-bold text-sm">داشبرد مدیریت</div>
-              <div className="text-[11px] text-slate-500 mt-0.5">کاربران، سفارش‌ها، اشتراک‌ها و آمار کلی</div>
+              <div className="font-bold text-sm">پنل مدیریت (وب)</div>
+              <div className="text-[11px] text-slate-500 mt-0.5">باز شدن داشبرد جداگانه — کاربران، سفارش‌ها و آمار</div>
             </div>
             <ChevronLeft className="size-4.5 text-slate-400 shrink-0" />
           </button>

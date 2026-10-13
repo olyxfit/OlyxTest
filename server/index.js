@@ -883,6 +883,12 @@ app.get('/api/admin/orders', auth, adminOnly, (req, res) => {
   })
 })
 
+// ---------- پنل مدیریت مستقل — جدا از اپ، در مرورگر روی /admin ----------
+const adminDir = path.join(__dirname, '..', 'admin')
+if (fs.existsSync(adminDir)) {
+  app.use('/admin', express.static(adminDir))
+}
+
 // ---------- landing page + APK download ----------
 const pub = path.join(__dirname, '..', 'publish')
 if (fs.existsSync(pub)) {
