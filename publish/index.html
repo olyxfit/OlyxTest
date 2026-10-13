@@ -254,6 +254,34 @@
     .dl-card .note { margin-top: 14px; font-size: .72rem; color: var(--muted); }
     .badge-soon { font-size: .66rem; font-weight: 800; color: var(--emerald); background: rgba(5,150,105,.1); border: 1px solid rgba(5,150,105,.25); border-radius: 999px; padding: 2px 10px; }
 
+    /* ---------- pricing ---------- */
+    .pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 900px; margin-inline: auto; }
+    @media (max-width: 760px) { .pricing-grid { grid-template-columns: 1fr; max-width: 420px; } }
+    .plan {
+      background: #fff; border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 30px 26px; text-align: center; position: relative;
+      transition: transform .2s, box-shadow .2s, border-color .2s;
+    }
+    .plan:hover { transform: translateY(-4px); box-shadow: 0 24px 50px -18px rgba(15,23,42,.16); border-color: rgba(37,99,235,.35); }
+    .plan.featured { border: 2px solid var(--emerald); box-shadow: 0 24px 55px -18px rgba(5,150,105,.3); }
+    .plan .save {
+      position: absolute; top: -13px; right: 50%; transform: translateX(50%);
+      font-size: .68rem; font-weight: 800; color: #fff; white-space: nowrap;
+      background: linear-gradient(135deg, var(--emerald-light), var(--emerald));
+      border-radius: 999px; padding: 4px 14px; box-shadow: 0 6px 16px -6px rgba(5,150,105,.5);
+    }
+    .plan .dur { font-size: .95rem; font-weight: 800; color: var(--muted); }
+    .plan .price { font-size: 1.7rem; font-weight: 900; color: var(--text); margin-top: 8px; }
+    .plan .price small { font-size: .78rem; font-weight: 700; color: var(--muted); }
+    .plan .per { font-size: .72rem; color: var(--muted); margin-top: 2px; }
+    .plan ul { margin: 20px 0 24px; text-align: right; display: flex; flex-direction: column; gap: 9px; }
+    .plan ul li { display: flex; gap: 9px; font-size: .82rem; color: var(--muted); list-style: none; }
+    .plan ul li::before {
+      content: ""; width: 17px; height: 17px; flex-shrink: 0; margin-top: 3px; border-radius: 50%;
+      background: rgba(5,150,105,.12) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23059669' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E") center/10px no-repeat;
+    }
+    .pricing-note { text-align: center; color: var(--muted); font-size: .8rem; margin-top: 22px; }
+
     /* ---------- faq ---------- */
     .faq { max-width: 760px; margin-inline: auto; }
     .faq-item { border: 1px solid var(--border); border-radius: 16px; margin-bottom: 12px; background: #fff; overflow: hidden; }
@@ -303,6 +331,7 @@
       <nav class="nav-links">
         <a href="#services">امکانات</a>
         <a href="#download">دانلود</a>
+        <a href="#pricing">تعرفه</a>
         <a href="#faq">سوالات متداول</a>
       </nav>
       <div class="nav-cta">
@@ -399,6 +428,7 @@
             <li><span><b>۶ درس تخصصی</b>تغذیه، آناتومی، فیزیولوژی، سیستم‌های تمرین، طراحی تمرین و درس جنسیتی (داوری آقایان / فنی تخصصی بانوان)</span></li>
             <li><span><b>رشته و جنسیت دلخواه</b>بدنسازی یا فیتنس، آقایان یا بانوان</span></li>
             <li><span><b>ده‌ها سری آزمون</b>با سوالات غیرتکراری در هر سری</span></li>
+            <li><span><b>برگهٔ واقعی فدراسیون</b>یک سری آزمون با سوالات رونویسی‌شده از ادوار گذشته</span></li>
           </ul>
         </div>
         <div class="mock">
@@ -508,7 +538,7 @@
           <a class="btn btn-emerald btn-lg" href="azmoon-app.apk" download style="width:100%">
             دانلود مستقیم APK
           </a>
-          <div class="note">پس از دانلود، اجازهٔ «نصب از منابع ناشناس» را فعال کنید</div>
+          <div class="note">نسخهٔ ۱٫۲٫۰ • پس از دانلود، اجازهٔ «نصب از منابع ناشناس» را فعال کنید</div>
         </div>
         <div class="dl-card">
           <div class="ic" style="background:linear-gradient(135deg,#60a5fa,#2563eb)">
@@ -525,8 +555,57 @@
     </div>
   </section>
 
+  <!-- ══════════ تعرفه ══════════ -->
+  <section class="section" id="pricing">
+    <div class="container">
+      <div class="sec-head">
+        <div class="kicker">تعرفه</div>
+        <h2>شروع رایگان، ادامه با اشتراک</h2>
+        <p>کوییز روزانه، آزمون‌های تک‌درس و اولین آزمون جامعت همیشه رایگان است. برای دسترسی نامحدود، اشتراک را از داخل اپ با پرداخت بله فعال کن.</p>
+      </div>
+      <div class="pricing-grid">
+        <div class="plan">
+          <div class="dur">یک‌ماهه</div>
+          <div class="price">۱۹۹ <small>هزار تومان</small></div>
+          <div class="per">برای امتحان کردن مسیر</div>
+          <ul>
+            <li>همهٔ سری‌های آزمون جامع</li>
+            <li>آزمون‌ساز نامحدود</li>
+            <li>آمار، نقاط ضعف و سوابق</li>
+            <li>مرور کامل آزمون‌های قبلی</li>
+          </ul>
+          <a class="btn btn-ghost" href="azmoon-app.apk" download style="width:100%">شروع کن</a>
+        </div>
+        <div class="plan featured">
+          <span class="save">پیشنهادی — ۱۶٪ تخفیف</span>
+          <div class="dur">سه‌ماهه</div>
+          <div class="price">۴۹۹ <small>هزار تومان</small></div>
+          <div class="per">پوشش کامل یک دورهٔ آمادگی</div>
+          <ul>
+            <li>همهٔ امکانات پلن ماهانه</li>
+            <li>~۱۶۶ هزار تومان در ماه</li>
+            <li>مناسب مسیر ۳ ماههٔ آمادگی درجه ۳</li>
+          </ul>
+          <a class="btn btn-emerald" href="azmoon-app.apk" download style="width:100%">شروع کن</a>
+        </div>
+        <div class="plan">
+          <div class="dur">سالانه</div>
+          <div class="price">۱٫۴۹۹ <small>میلیون تومان</small></div>
+          <div class="per">۳۷٪ تخفیف نسبت به ماهانه</div>
+          <ul>
+            <li>همهٔ امکانات پلن ماهانه</li>
+            <li>~۱۲۵ هزار تومان در ماه</li>
+            <li>بدون دغدغهٔ تمدید برای یک سال</li>
+          </ul>
+          <a class="btn btn-ghost" href="azmoon-app.apk" download style="width:100%">شروع کن</a>
+        </div>
+      </div>
+      <div class="pricing-note">پرداخت امن از داخل اپ با «بله پی» انجام می‌شود — بدون نیاز به درگاه بانکی.</div>
+    </div>
+  </section>
+
   <!-- ══════════ سوالات متداول ══════════ -->
-  <section class="section" id="faq">
+  <section class="section alt" id="faq">
     <div class="container">
       <div class="sec-head">
         <div class="kicker">سوالات متداول</div>
@@ -544,6 +623,14 @@
         <details class="faq-item">
           <summary>چقدر از اپ رایگان است؟</summary>
           <div class="a">کوییز روزانه، آزمون‌های تک‌درس و اولین آزمون جامعت همیشه رایگان است. برای دسترسی نامحدود به همهٔ آزمون‌های جامع و آزمون‌ساز، اشتراک لازم است.</div>
+        </details>
+        <details class="faq-item">
+          <summary>با اشتراک دقیقاً چه چیزهایی باز می‌شود؟</summary>
+          <div class="a">همهٔ سری‌های آزمون جامع (بدنسازی و فیتنس، آقایان و بانوان)، آزمون‌ساز نامحدود، صفحهٔ آمار و تحلیل نقاط ضعف، و سوابق کامل آزمون‌ها با امکان مرور پاسخ‌ها در هر زمان.</div>
+        </details>
+        <details class="faq-item">
+          <summary>اپ را چطور به‌روز کنم؟</summary>
+          <div class="a">از پروفایل اپ، بخش «به‌روزرسانی» وقتی نسخهٔ جدید بیاید اطلاع می‌دهد و با یک تپ به همین صفحه می‌آیی تا APK جدید را بگیری — نصب روی نسخهٔ قبلی انجام می‌شود و اطلاعاتت می‌ماند.</div>
         </details>
         <details class="faq-item">
           <summary>آزمون‌ها دقیقاً شبیه آزمون فدراسیون هستند؟</summary>
@@ -578,6 +665,7 @@
         <div class="links">
           <a href="#services">امکانات</a>
           <a href="#download">دانلود</a>
+          <a href="#pricing">تعرفه</a>
           <a href="#faq">سوالات متداول</a>
           <a href="/">وب‌اپ</a>
         </div>
