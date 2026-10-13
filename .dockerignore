@@ -11,3 +11,5 @@ scripts
 .railwayignore
 .git
 .env
+admin-app/node_modules
+admin

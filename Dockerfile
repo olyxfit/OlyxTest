@@ -4,11 +4,12 @@ WORKDIR /app
 
 COPY package.json package-lock.json ./
 COPY client/package.json client/package-lock.json ./client/
-RUN npm ci && npm --prefix client ci
+COPY admin-app/package.json admin-app/package-lock.json ./admin-app/
+RUN npm ci && npm --prefix client ci && npm --prefix admin-app ci
 
 COPY . .
 # بدون VITE_API_URL بیلد می‌شود تا کلاینت وب از همان دامنهٔ خودش API را صدا بزند
-RUN npm --prefix client run build
+RUN npm --prefix client run build && npm --prefix admin-app run build
 
 # ---------- مرحلهٔ اجرا: فقط سرور + خروجی بیلد ----------
 FROM hub.hamdocker.ir/node:20 AS runner
@@ -23,6 +24,7 @@ COPY server ./server
 COPY shared ./shared
 COPY publish ./publish
 COPY --from=builder /app/client/dist ./client/dist
+COPY --from=builder /app/admin ./admin
 
 EXPOSE 3001
 CMD ["node", "server/index.js"]

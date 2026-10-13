@@ -6,7 +6,7 @@ import { useAuth } from '../lib/auth.jsx'
 import SectionIcon, { sectionGradient } from '../components/SectionIcon.jsx'
 import DailyQuiz from '../components/DailyQuiz.jsx'
 
-const toFa = (n) => Number(n).toLocaleString('fa-IR')
+const toFa = (n) => (Number.isFinite(Number(n)) ? Number(n).toLocaleString('fa-IR') : '۰')
 
 export default function Home() {
   const [exams, setExams] = useState(null)
@@ -272,36 +272,6 @@ export default function Home() {
               </div>
             </button>
           ))}
-        </section>
-      )}
-
-      {/* recent attempts */}
-      {attempts.length > 0 && (
-        <section className="card overflow-hidden animate-pop">
-          <div className="px-4 py-3 text-sm font-semibold border-b border-[#e6e8f0]">آخرین نتایج</div>
-          <div className="divide-y divide-[#e6e8f0]">
-            {attempts.slice(0, 3).map((a) => (
-              <div key={a.id} className="flex items-center justify-between px-4 py-3">
-                <div>
-                  <div className="text-sm font-bold">{a.sectionTitle}</div>
-                  <div className="text-xs text-slate-500 mt-0.5">
-                    {a.examTitle} • {new Date(a.createdAt).toLocaleDateString('fa-IR')}
-                  </div>
-                </div>
-                <span
-                  className={`text-sm font-extrabold px-2.5 py-1 rounded-lg ${
-                    a.score >= 70
-                      ? 'text-emerald-600 bg-emerald-500/10'
-                      : a.score >= 50
-                      ? 'text-amber-500 bg-amber-500/10'
-                      : 'text-rose-600 bg-rose-500/10'
-                  }`}
-                >
-                  {toFa(a.score)}٪
-                </span>
-              </div>
-            ))}
-          </div>
         </section>
       )}
 

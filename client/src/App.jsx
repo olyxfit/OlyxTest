@@ -9,7 +9,6 @@ import Quiz from './pages/Quiz.jsx'
 import Result from './pages/Result.jsx'
 import Profile from './pages/Profile.jsx'
 import Subscription from './pages/Subscription.jsx'
-import Leaderboard from './pages/Leaderboard.jsx'
 import Panel from './pages/Panel.jsx'
 import Layout from './components/Layout.jsx'
 
@@ -45,7 +44,6 @@ export default function App() {
         <Route path="result/:attemptId" element={<Result />} />
         <Route path="profile" element={<Profile />} />
         <Route path="subscription" element={<Subscription />} />
-        <Route path="leaderboard" element={<Leaderboard />} />
         <Route path="panel" element={<Panel />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -3,7 +3,7 @@ import { Crown, Trophy } from 'lucide-react'
 import { api } from '../lib/api.js'
 import { useAuth } from '../lib/auth.jsx'
 
-const toFa = (n) => Number(n).toLocaleString('fa-IR')
+const toFa = (n) => (Number.isFinite(Number(n)) ? Number(n).toLocaleString('fa-IR') : '۰')
 
 const PERIODS = [
   { id: 'day', label: 'امروز' },

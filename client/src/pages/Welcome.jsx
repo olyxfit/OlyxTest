@@ -90,7 +90,7 @@ export default function Welcome() {
         {/* عنوان */}
         <div className="flex flex-col items-center gap-4 animate-pop" style={{ animationDelay: '80ms' }}>
           <h1 dir="ltr" className="text-5xl sm:text-6xl font-black tracking-tight text-white drop-shadow-[0_4px_30px_rgba(0,0,0,0.7)]">
-            Olyxtest
+            OlyxTest
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-cyan-300">.ai</span>
           </h1>
           <p className="max-w-md text-slate-200 leading-8 text-base sm:text-lg">

@@ -4,7 +4,7 @@ import { Check, ChevronRight, ChevronLeft, Clock3, Flag, X } from 'lucide-react'
 import { api } from '../lib/api.js'
 import SectionIcon, { sectionSoft } from '../components/SectionIcon.jsx'
 
-const toFa = (n) => Number(n).toLocaleString('fa-IR')
+const toFa = (n) => (Number.isFinite(Number(n)) ? Number(n).toLocaleString('fa-IR') : '۰')
 const LETTERS = ['الف', 'ب', 'ج', 'د']
 
 export default function Quiz() {

@@ -4,7 +4,7 @@ import { ArrowRight, Clock3, ClipboardList, Crown, Gift, Layers, Lock, Play, Lig
 import { api } from '../lib/api.js'
 import { sectionGradient } from '../components/SectionIcon.jsx'
 
-const toFa = (n) => Number(n).toLocaleString('fa-IR')
+const toFa = (n) => (Number.isFinite(Number(n)) ? Number(n).toLocaleString('fa-IR') : '۰')
 
 export default function ExamDetail() {
   const { examId } = useParams()

@@ -1,6 +1,6 @@
 {
   "appId": "ir.azmoon.morabi",
-  "appName": "Olyxtest.ai",
+  "appName": "OlyxTest",
   "webDir": "dist",
   "android": {
     "allowMixedContent": true

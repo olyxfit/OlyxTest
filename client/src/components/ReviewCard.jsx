@@ -2,7 +2,7 @@ import { Check, X, Minus, Flag, Lightbulb, Lock } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import SectionIcon, { sectionSoft } from './SectionIcon.jsx'
 
-const toFa = (n) => Number(n).toLocaleString('fa-IR')
+const toFa = (n) => (Number.isFinite(Number(n)) ? Number(n).toLocaleString('fa-IR') : '۰')
 export const LETTERS = ['الف', 'ب', 'ج', 'د', 'ه', 'و']
 
 // وضعیت هر سوال — رنگ‌بندی متمایز برای درست / نادرست / بی‌پاسخ

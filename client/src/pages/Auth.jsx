@@ -133,7 +133,7 @@ export default function Auth() {
             className="size-16 mx-auto drop-shadow-[0_6px_22px_rgba(0,200,253,0.5)]"
           />
           <p dir="ltr" className="mt-3 text-lg font-black tracking-tight text-slate-800">
-            Olyxtest<span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-500 to-cyan-400">.ai</span>
+            Olyx<span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-500 to-cyan-400">Test</span>
           </p>
           <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-slate-800">
             آمادگی آزمون

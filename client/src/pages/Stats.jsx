@@ -4,7 +4,7 @@ import { BarChart3, Check, ChevronDown, ClipboardList, Crown, ListChecks, Target
 import { api } from '../lib/api.js'
 import SectionIcon, { sectionGradient } from '../components/SectionIcon.jsx'
 
-const toFa = (n) => Number(n).toLocaleString('fa-IR')
+const toFa = (n) => (Number.isFinite(Number(n)) ? Number(n).toLocaleString('fa-IR') : '۰')
 const faDate = (ts) => new Date(ts).toLocaleDateString('fa-IR', { day: 'numeric', month: 'long' })
 
 const scoreColor = (p) =>

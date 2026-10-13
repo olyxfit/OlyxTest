@@ -49,9 +49,15 @@ const hashPassword = (password, salt = crypto.randomBytes(16).toString('hex')) =
   return `${salt}:${hash}`
 }
 const verifyPassword = (password, stored) => {
-  const [salt, hash] = stored.split(':')
-  const candidate = crypto.scryptSync(password, salt, 64)
-  return crypto.timingSafeEqual(candidate, Buffer.from(hash, 'hex'))
+  // کاربران OTP فیلد password ندارند — به‌جای کرش ۵۰۰، عدم تطابق برمی‌گردانیم
+  if (typeof stored !== 'string' || !stored.includes(':')) return false
+  try {
+    const [salt, hash] = stored.split(':')
+    const candidate = crypto.scryptSync(password, salt, 64)
+    return crypto.timingSafeEqual(candidate, Buffer.from(hash, 'hex'))
+  } catch {
+    return false
+  }
 }
 const newToken = () => crypto.randomBytes(32).toString('hex')
 
@@ -75,12 +81,31 @@ const bumpStreak = (u, now) => {
   u.streak = s
 }
 
+// سشن‌ها ۳۰ روز عمر دارند و سشن‌های یتیم (کاربر حذف‌شده) پاک می‌شوند
+const SESSION_TTL = 30 * 86400000
+const pruneSessions = () => {
+  const db = getDb()
+  const now = Date.now()
+  const before = db.sessions.length
+  db.sessions = db.sessions.filter(
+    (s) => now - (s.createdAt ?? now) < SESSION_TTL && db.users.some((u) => u.id === s.userId),
+  )
+  if (db.sessions.length !== before) save()
+}
+const newSession = (db, userId) => {
+  const token = newToken()
+  db.sessions.push({ token, userId, createdAt: Date.now() })
+  return token
+}
+
 function auth(req, res, next) {
   const token = (req.headers.authorization || '').replace('Bearer ', '')
   const session = getDb().sessions.find((s) => s.token === token)
-  if (!session) return res.status(401).json({ error: 'احراز هویت نامعتبر است' })
+  if (!session || (session.createdAt && Date.now() - session.createdAt > SESSION_TTL))
+    return res.status(401).json({ error: 'احراز هویت نامعتبر است' })
   const user = getDb().users.find((u) => u.id === session.userId)
   if (!user) return res.status(401).json({ error: 'کاربر یافت نشد' })
+  session.lastUsedAt = Date.now() // در حافظه؛ با save بعدی روی دیسک می‌نشیند
   req.user = user
   next()
 }
@@ -110,49 +135,54 @@ function adminOnly(req, res, next) {
       id: crypto.randomUUID(),
       name: 'ادمین',
       phone: '1111',
-      password: hashPassword('1111'),
+      // رمز مدیر از env — بدون ADMIN_PASSWORD مقدار پیش‌فرض ۱۱۱۱ است (قبل از انتشار تغییر دهید)
+      password: hashPassword(process.env.ADMIN_PASSWORD || '1111'),
       admin: true,
       createdAt: Date.now(),
     })
     save()
   } else if (!seed.admin) {
+    // فقط سید اصلی ادمین می‌شود؛ register با isValidPhone ساخت کاربر ۱۱۱۱ را ممنوع کرده
     seed.admin = true
     save()
   }
+  pruneSessions()
 }
 
 // ---------- auth routes ----------
 app.post('/api/register', (req, res) => {
-  const { name, phone, password } = req.body || {}
-  if (!name?.trim() || !phone?.trim() || !password)
+  const { name, password } = req.body || {}
+  const phone = normalizePhone(req.body?.phone)
+  if (!name?.trim() || !phone || !password)
     return res.status(400).json({ error: 'نام، شماره موبایل و رمز عبور الزامی است' })
+  if (!isValidPhone(phone))
+    return res.status(400).json({ error: 'شماره موبایل نامعتبر است. مثال: 09123456789' })
   if (password.length < 4)
     return res.status(400).json({ error: 'رمز عبور باید حداقل ۴ کاراکتر باشد' })
   const db = getDb()
-  if (db.users.some((u) => u.phone === phone.trim()))
+  if (db.users.some((u) => u.phone === phone))
     return res.status(409).json({ error: 'این شماره موبایل قبلاً ثبت‌نام کرده است' })
 
   const user = {
     id: crypto.randomUUID(),
     name: name.trim(),
-    phone: phone.trim(),
+    phone,
     password: hashPassword(password),
     createdAt: Date.now(),
   }
   db.users.push(user)
-  const token = newToken()
-  db.sessions.push({ token, userId: user.id })
+  const token = newSession(db, user.id)
   save()
   res.json({ token, user: publicUser(user) })
 })
 
 app.post('/api/login', (req, res) => {
-  const { phone, password } = req.body || {}
-  const user = getDb().users.find((u) => u.phone === phone?.trim())
+  const { password } = req.body || {}
+  const phone = normalizePhone(req.body?.phone)
+  const user = getDb().users.find((u) => u.phone === phone)
   if (!user || !verifyPassword(password || '', user.password))
     return res.status(401).json({ error: 'شماره موبایل یا رمز عبور اشتباه است' })
-  const token = newToken()
-  getDb().sessions.push({ token, userId: user.id })
+  const token = newSession(getDb(), user.id)
   save()
   res.json({ token, user: publicUser(user) })
 })
@@ -267,8 +297,7 @@ app.post('/api/otp/verify', (req, res) => {
   }
   db.otps = db.otps.filter((o) => o !== otp)
 
-  const token = newToken()
-  db.sessions.push({ token, userId: user.id })
+  const token = newSession(db, user.id)
   save()
   res.json({ token, user: publicUser(user) })
 })
@@ -303,7 +332,8 @@ app.post('/api/subscribe', auth, adminOnly, (req, res) => {
 
 // ---------- پرداخت بله (کیف پول) ----------
 const ORDER_TTL = 30 * 60 * 1000 // سفارش در انتظار پرداخت نهایتاً ۳۰ دقیقه معتبر است
-const orderExpired = (o) => o.status === 'pending' && o.expiresAt && Date.now() > o.expiresAt
+// سفارش‌های قدیمی بدون expiresAt با createdAt + TTL منقضی می‌شوند
+const orderExpired = (o) => o.status === 'pending' && Date.now() > (o.expiresAt ?? o.createdAt + ORDER_TTL)
 
 app.post('/api/payment/order', auth, async (req, res) => {
   const plan = PLANS[req.body?.plan]
@@ -807,14 +837,17 @@ app.delete('/api/admin/feedback/:id', auth, adminOnly, (req, res) => {
 app.get('/api/admin/overview', auth, adminOnly, (req, res) => {
   const db = getDb()
   const real = db.users.filter((u) => !u.admin)
+  const realIds = new Set(real.map((u) => u.id))
   const paid = db.orders.filter((o) => o.status === 'paid')
+  // آمار تلاش‌ها/آزمون‌های ساخته‌شده فقط برای کاربران واقعی — تست‌های خود مدیر شمرده نمی‌شوند
+  const realAttempts = db.attempts.filter((a) => realIds.has(a.userId))
   res.json({
     users: real.length,
     activeSubs: real.filter(subActiveFor).length,
-    attempts: db.attempts.length,
+    attempts: realAttempts.length,
     questions: questions.length,
-    avgScore: db.attempts.length ? Math.round(db.attempts.reduce((s, a) => s + a.score, 0) / db.attempts.length) : 0,
-    generated: db.generated.length,
+    avgScore: realAttempts.length ? Math.round(realAttempts.reduce((s, a) => s + a.score, 0) / realAttempts.length) : 0,
+    generated: db.generated.filter((g) => realIds.has(g.userId) || realIds.has(g.createdBy)).length,
     paidOrders: paid.length,
     pendingOrders: db.orders.filter((o) => o.status === 'pending').length,
     revenueRial: paid.reduce((s, o) => s + o.amountRial, 0),
@@ -868,6 +901,10 @@ app.delete('/api/admin/users/:id/subscription', auth, adminOnly, (req, res) => {
 
 app.get('/api/admin/orders', auth, adminOnly, (req, res) => {
   const db = getDb()
+  // سفارش‌های معلق منقضی در نمایش واقعی می‌شوند
+  let dirty = false
+  for (const o of db.orders) if (orderExpired(o)) { o.status = 'expired'; dirty = true }
+  if (dirty) save()
   const nameOf = (id) => db.users.find((u) => u.id === id)?.name || '—'
   const phoneOf = (id) => db.users.find((u) => u.id === id)?.phone || ''
   res.json({
@@ -881,6 +918,146 @@ app.get('/api/admin/orders', auth, adminOnly, (req, res) => {
         userPhone: phoneOf(o.userId),
       })),
   })
+})
+
+// ---------- CRM: نمای ۳۶۰ درجهٔ کاربر، یادداشت، متریک‌ها و خروجی ----------
+const examTitleOf = (examId) =>
+  exams.find((e) => e.id === examId)?.title || getDb().generated.find((e) => e.id === examId)?.title || examId
+
+// جزئیات کامل یک کاربر برای صفحهٔ CRM: پروفایل، اشتراک، آمار، تلاش‌ها، سفارش‌ها، نظرها
+app.get('/api/admin/users/:id', auth, adminOnly, (req, res) => {
+  const db = getDb()
+  const u = db.users.find((x) => x.id === req.params.id)
+  if (!u) return res.status(404).json({ error: 'کاربر یافت نشد' })
+  const ats = db.attempts.filter((a) => a.userId === u.id).sort((a, b) => b.createdAt - a.createdAt)
+  res.json({
+    user: { ...publicUser(u), createdAt: u.createdAt, gender: u.gender ?? null, note: u.note ?? '' },
+    stats: {
+      attempts: ats.length,
+      avgScore: ats.length ? Math.round(ats.reduce((s, a) => s + a.score, 0) / ats.length) : 0,
+      bestScore: ats.length ? Math.max(...ats.map((a) => a.score)) : 0,
+      totalTimeMin: Math.round(ats.reduce((s, a) => s + (a.timeSpent || 0), 0) / 60),
+      lastAttemptAt: ats[0]?.createdAt ?? null,
+    },
+    attempts: ats.slice(0, 30).map((a) => ({
+      id: a.id, examId: a.examId, examTitle: examTitleOf(a.examId),
+      score: a.score, correct: a.correct, total: a.total, timeSpent: a.timeSpent, createdAt: a.createdAt,
+    })),
+    orders: db.orders.filter((o) => o.userId === u.id).sort((a, b) => b.createdAt - a.createdAt)
+      .map((o) => ({ ...o, planTitle: PLANS[o.plan]?.title || o.plan })),
+    feedback: db.feedback.filter((f) => f.userId === u.id).sort((a, b) => b.createdAt - a.createdAt),
+  })
+})
+
+// یادداشت مدیر روی کاربر — متن کوتاه، فقط در CRM دیده می‌شود
+app.post('/api/admin/users/:id/note', auth, adminOnly, (req, res) => {
+  const u = getDb().users.find((x) => x.id === req.params.id)
+  if (!u) return res.status(404).json({ error: 'کاربر یافت نشد' })
+  u.note = String(req.body?.note ?? '').slice(0, 2000)
+  save()
+  res.json({ ok: true, note: u.note })
+})
+
+// ویرایش اطلاعات کاربر (نام/موبایل) — برای اصلاح توسط مدیر
+app.patch('/api/admin/users/:id', auth, adminOnly, (req, res) => {
+  const db = getDb()
+  const u = db.users.find((x) => x.id === req.params.id)
+  if (!u) return res.status(404).json({ error: 'کاربر یافت نشد' })
+  if (req.body?.name != null) {
+    const name = String(req.body.name).trim()
+    if (!name) return res.status(400).json({ error: 'نام نمی‌تواند خالی باشد' })
+    u.name = name
+  }
+  if (req.body?.phone != null && !u.admin) {
+    const phone = normalizePhone(req.body.phone)
+    if (!isValidPhone(phone)) return res.status(400).json({ error: 'شماره موبایل نامعتبر است' })
+    if (db.users.some((x) => x.id !== u.id && x.phone === phone))
+      return res.status(409).json({ error: 'این شماره برای کاربر دیگری ثبت شده است' })
+    u.phone = phone
+  }
+  save()
+  res.json({ user: publicUser(u) })
+})
+
+// ابطال همهٔ نشست‌های کاربر — خروج اجباری (مثلاً وقتی اکانت مشکوک است)
+app.post('/api/admin/users/:id/revoke-sessions', auth, adminOnly, (req, res) => {
+  const db = getDb()
+  const u = db.users.find((x) => x.id === req.params.id)
+  if (!u) return res.status(404).json({ error: 'کاربر یافت نشد' })
+  const n = db.sessions.length
+  db.sessions = db.sessions.filter((s) => s.userId !== u.id)
+  save()
+  res.json({ ok: true, revoked: n - db.sessions.length })
+})
+
+// تغییر وضعیت سفارش — ثبت فروش نقدی (paid) یا لغو سفارش معلق
+app.patch('/api/admin/orders/:id', auth, adminOnly, async (req, res) => {
+  const order = getDb().orders.find((o) => o.id === req.params.id)
+  if (!order) return res.status(404).json({ error: 'سفارش یافت نشد' })
+  const status = req.body?.status
+  if (status === 'paid') {
+    if (order.status !== 'paid') fulfillOrder(order, { provider_payment_charge_id: 'manual-admin' })
+  } else if (status === 'canceled') {
+    if (order.status !== 'pending') return res.status(400).json({ error: 'فقط سفارش در انتظار قابل لغو است' })
+    order.status = 'canceled'
+    save()
+  } else {
+    return res.status(400).json({ error: 'وضعیت نامعتبر — paid یا canceled' })
+  }
+  res.json({ order })
+})
+
+// متریک‌های ۳۰ روز اخیر: ثبت‌نام/آزمون/درآمد روزانه + قیف تبدیل — برای چارت‌های داشبرد
+app.get('/api/admin/metrics', auth, adminOnly, (req, res) => {
+  const db = getDb()
+  const days = 30
+  const today = tehranDay(Date.now())
+  const bucket = () => Array.from({ length: days }, (_, i) => ({ day: today - days + 1 + i, v: 0 }))
+  const signups = bucket(), attempts = bucket(), revenue = bucket(), ordersDay = bucket()
+  const push = (arr, ts, v = 1) => {
+    const d = tehranDay(ts)
+    const i = d - (today - days + 1)
+    if (i >= 0 && i < days) arr[i].v += v
+  }
+  for (const u of db.users) if (!u.admin) push(signups, u.createdAt)
+  for (const a of db.attempts) push(attempts, a.createdAt)
+  for (const o of db.orders) {
+    push(ordersDay, o.createdAt)
+    if (o.status === 'paid') push(revenue, o.createdAt, o.amountRial)
+  }
+  const real = db.users.filter((u) => !u.admin)
+  const engaged = real.filter((u) => db.attempts.some((a) => a.userId === u.id))
+  res.json({
+    days: signups.map((b) => b.day),
+    signups: signups.map((b) => b.v),
+    attempts: attempts.map((b) => b.v),
+    revenue: revenue.map((b) => Math.round(b.v / 10)), // تومان
+    ordersPerDay: ordersDay.map((b) => b.v),
+    funnel: {
+      registered: real.length,
+      engaged: engaged.length,
+      subscribed: real.filter(subActiveFor).length,
+      paying: real.filter((u) => db.orders.some((o) => o.userId === u.id && o.status === 'paid')).length,
+    },
+  })
+})
+
+// خروجی CSV کاربران — برای تحلیل خارجی/بکاپ ارتباطات
+app.get('/api/admin/export/users.csv', auth, adminOnly, (req, res) => {
+  const db = getDb()
+  const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`
+  const rows = [['id', 'name', 'phone', 'plan', 'sub_until', 'active_sub', 'points', 'streak', 'exams', 'last_attempt', 'created_at', 'note'].join(',')]
+  for (const u of db.users.filter((x) => !x.admin)) {
+    const ats = db.attempts.filter((a) => a.userId === u.id)
+    rows.push([
+      u.id, esc(u.name), u.phone, u.subscription?.plan ?? '', u.subscription?.until ?? '',
+      subActiveFor(u) ? 1 : 0, userPoints(u.id), u.streak?.count ?? 0, ats.length,
+      ats.length ? Math.max(...ats.map((a) => a.createdAt)) : '', u.createdAt, esc(u.note ?? ''),
+    ].join(','))
+  }
+  res.setHeader('content-type', 'text/csv; charset=utf-8')
+  res.setHeader('content-disposition', 'attachment; filename="users.csv"')
+  res.send('﻿' + rows.join('\n')) // BOM برای خوانایی در اکسل
 })
 
 // ---------- پنل مدیریت مستقل — جدا از اپ، در مرورگر روی /admin ----------

@@ -5,7 +5,7 @@ import { useAuth } from '../lib/auth.jsx'
 import SectionIcon, { sectionSoft } from './SectionIcon.jsx'
 import ReviewCard from './ReviewCard.jsx'
 
-const toFa = (n) => Number(n).toLocaleString('fa-IR')
+const toFa = (n) => (Number.isFinite(Number(n)) ? Number(n).toLocaleString('fa-IR') : '۰')
 
 const dayKey = () => {
   const d = new Date()

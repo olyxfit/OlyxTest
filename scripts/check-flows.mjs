@@ -400,7 +400,7 @@ try {
     r = await req('DELETE', `/admin/feedback/${fid}`, { token: at })
     check('DELETE feedback → ok', r.status === 200)
 
-    // ---------- داشبرد مدیریتی ----------
+    // ---------- داشبرد مدیریتی و CRM ----------
     r = await req('GET', '/admin/overview', { token: at })
     check('/admin/overview → شمارنده‌ها', r.status === 200 && r.data.users >= 1 && 'revenueRial' in r.data && 'attempts' in r.data, JSON.stringify(r.data))
     r = await req('GET', '/admin/users', { token: at })
@@ -409,11 +409,48 @@ try {
     check('/admin/orders → لیست با planTitle/userName', r.status === 200 && Array.isArray(r.data.list) && (r.data.list.length === 0 || 'planTitle' in r.data.list[0]))
     r = await req('GET', '/admin/users', { token })
     check('/admin/users کاربر عادی → 403', r.status === 403)
+
+    // ---------- CRM ----------
+    r = await req('GET', `/admin/users/${userId}`, { token: at })
+    check('/admin/users/:id → نمای ۳۶۰° با stats/attempts', r.status === 200 && r.data.stats && Array.isArray(r.data.attempts) && 'orders' in r.data, `status=${r.status}`)
+    r = await req('POST', `/admin/users/${userId}/note`, { token: at, body: { note: 'یادداشت تست CRM' } })
+    check('note ذخیره شد', r.status === 200 && r.data.note === 'یادداشت تست CRM')
+    const ud = await req('GET', `/admin/users/${userId}`, { token: at })
+    check('note در جزئیات کاربر برمی‌گردد', ud.data.user?.note === 'یادداشت تست CRM')
+    r = await req('PATCH', `/admin/users/${userId}`, { token: at, body: { name: 'تست فلو ۲' } })
+    check('PATCH user → نام تغییر کرد', r.status === 200 && r.data.user?.name === 'تست فلو ۲')
+    r = await req('PATCH', `/admin/users/${userId}`, { token: at, body: { phone: '1111' } })
+    check('PATCH phone نامعتبر → 400', r.status === 400)
+    r = await req('GET', '/admin/metrics', { token: at })
+    check('/admin/metrics → funnel + سری ۳۰ روزه', r.status === 200 && r.data.funnel && r.data.signups?.length === 30, `status=${r.status}`)
+    const csv = await fetch(`${BASE}/admin/export/users.csv`, { headers: { authorization: `Bearer ${at}` } })
+    check('export users.csv → 200 CSV', csv.status === 200 && (csv.headers.get('content-type') || '').includes('text/csv'))
+    const csvBody = await csv.text()
+    check('CSV شامل ردیف کاربر تست', csvBody.includes('تست فلو'))
+    // لغو سفارش معلق از پنل
+    const ord = await req('POST', '/payment/order', { token, body: { plan: 'yearly' } })
+    if (ord.status === 200 && ord.data.orderId) {
+      const oc = await req('PATCH', `/admin/orders/${ord.data.orderId}`, { token: at, body: { status: 'canceled' } })
+      check('PATCH order → canceled', oc.status === 200 && oc.data.order?.status === 'canceled')
+    }
+    // ثبت‌نام با شماره نامعتبر/ادمینی ممنوع است
+    r = await req('POST', '/register', { body: { name: 'x', phone: '1111', password: '9999' } })
+    check('register با ۱۱۱۱ → 400 (ارتقای دسترسی مسدود)', r.status === 400, `status=${r.status}`)
+    r = await req('POST', '/register', { body: { name: 'x', phone: '0912', password: '9999' } })
+    check('register شماره ناقص → 400', r.status === 400)
     // حذف اشتراک کاربر تست برای تمیزکاری مرحلهٔ بعد
     r = await req('DELETE', `/admin/users/${userId}/subscription`, { token: at })
     check('admin revoke subscription → ok', r.status === 200 && r.data.user?.subscription === null, JSON.stringify(r.data.user?.subscription))
     // برگرداندن اشتراک برای تست‌های پایانی
     await req('POST', `/admin/users/${userId}/subscription`, { token: at, body: { plan: 'monthly' } })
+    // ابطال نشست‌ها — توکن کاربر تست بعد از این دیگر کار نمی‌کند؛ دوباره لاگین می‌کنیم
+    const rv = await req('POST', `/admin/users/${userId}/revoke-sessions`, { token: at })
+    check('revoke-sessions → ok', rv.status === 200)
+    const me2 = await req('GET', '/me', { token })
+    check('توکن باطل‌شده → 401', me2.status === 401)
+    const relog = await req('POST', '/login', { body: { phone, password: '1234' } })
+    token = relog.data.token
+    check('لاگین مجدد کاربر تست', relog.status === 200 && !!token)
   }
 
   // ---------- پایداری آزمون‌های ازپیش‌ساخته بین ری‌استارت ----------

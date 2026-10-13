@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { User, Crown, ClipboardList, ChevronLeft, LifeBuoy, Lock, Rocket, BadgeCheck, Download, ShieldCheck } from 'lucide-react'
+import { User, Crown, ClipboardList, ChevronLeft, LifeBuoy, Lock, Rocket, BadgeCheck, Download, ShieldCheck, X } from 'lucide-react'
 import { api, apiUrl, openExternal } from '../lib/api.js'
 import { useAuth } from '../lib/auth.jsx'
 import { APP_VERSION, compareVersions, UPCOMING } from '../lib/release.js'
 
-const toFa = (n) => Number(n).toLocaleString('fa-IR')
+const toFa = (n) => (Number.isFinite(Number(n)) ? Number(n).toLocaleString('fa-IR') : '۰')
 const toFaDate = (ts) => new Date(ts).toLocaleDateString('fa-IR', { year: 'numeric', month: 'long', day: 'numeric' })
 
 export default function Profile() {
@@ -13,6 +13,7 @@ export default function Profile() {
   const nav = useNavigate()
   const [attempts, setAttempts] = useState(null)
   const [release, setRelease] = useState(undefined) // undefined = در حال بارگذاری، null = خطا
+  const [updateOpen, setUpdateOpen] = useState(false)
 
   useEffect(() => {
     api('/attempts')
@@ -85,6 +86,23 @@ export default function Profile() {
           <ChevronLeft className="size-4.5 text-slate-400 shrink-0" />
         </button>
 
+        <button
+          onClick={() => setUpdateOpen(true)}
+          className="card w-full p-4 flex items-center gap-3 hover:border-indigo-500/40 transition-colors text-right"
+        >
+          <span className="size-10 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 grid place-items-center shadow-lg shadow-sky-500/25">
+            <Rocket className="size-5 text-white" />
+          </span>
+          <div className="flex-1 min-w-0">
+            <div className="font-bold text-sm">به‌روزرسانی و نسخه‌های بعدی</div>
+            <div className="text-[11px] text-slate-500 mt-0.5">
+              نسخهٔ فعلی <span dir="ltr">v{APP_VERSION}</span>
+              {updateAvailable ? ' — نسخهٔ جدید موجود است' : ''}
+            </div>
+          </div>
+          <ChevronLeft className="size-4.5 text-slate-400 shrink-0" />
+        </button>
+
         {user?.admin && (
           <button
             onClick={() => openExternal(apiUrl('/admin'))}
@@ -100,74 +118,6 @@ export default function Profile() {
             <ChevronLeft className="size-4.5 text-slate-400 shrink-0" />
           </button>
         )}
-      </section>
-
-      {/* به‌روزرسانی */}
-      <section className="card p-5 space-y-4 animate-pop">
-        <div className="flex items-center justify-between">
-          <h3 className="font-bold flex items-center gap-2">
-            <Rocket className="size-4.5 text-indigo-600" /> به‌روزرسانی
-          </h3>
-          <span className="text-[11px] text-slate-400" dir="ltr">v{APP_VERSION}</span>
-        </div>
-
-        {release === undefined ? (
-          <div className="skeleton h-12" />
-        ) : (
-          <div
-            className={`flex items-center gap-3 rounded-2xl border p-3 ${
-              updateAvailable
-                ? 'border-indigo-500/30 bg-indigo-500/5'
-                : 'border-emerald-500/30 bg-emerald-500/5'
-            }`}
-          >
-            <span
-              className={`size-9 rounded-xl grid place-items-center shrink-0 ${
-                updateAvailable ? 'bg-indigo-500/15 text-indigo-600' : 'bg-emerald-500/15 text-emerald-600'
-              }`}
-            >
-              {updateAvailable ? <Download className="size-4.5" /> : <BadgeCheck className="size-4.5" />}
-            </span>
-            <div className="flex-1 min-w-0">
-              <div className="text-xs font-bold">
-                {updateAvailable ? (
-                  <>نسخهٔ <span dir="ltr">{release.version}</span> منتشر شده</>
-                ) : release === null ? (
-                  'وضعیت نسخه نامشخص است'
-                ) : (
-                  'اپلیکیشن به‌روز است'
-                )}
-              </div>
-              <div className="text-[11px] text-slate-500 mt-0.5">
-                {updateAvailable
-                  ? 'برای دریافت جدیدترین امکانات، نسخهٔ جدید را نصب کنید'
-                  : release === null
-                  ? 'ارتباط با سرور برقرار نشد — بعداً دوباره بررسی کنید'
-                  : 'آخرین نسخهٔ منتشرشده را استفاده می‌کنید'}
-              </div>
-            </div>
-            {updateAvailable && updateUrl && (
-              <button
-                onClick={openUpdate}
-                className="shrink-0 rounded-xl bg-indigo-500 hover:bg-indigo-400 px-3 py-2 text-[11px] font-bold text-white transition-colors active:scale-95"
-              >
-                به‌روزرسانی
-              </button>
-            )}
-          </div>
-        )}
-
-        <div className="space-y-2">
-          <div className="text-[11px] font-bold text-slate-400">به‌زودی در نسخه‌های بعدی</div>
-          <ul className="space-y-1.5">
-            {UPCOMING.map((u) => (
-              <li key={u} className="flex items-center gap-2 text-[13px] text-slate-600">
-                <span className="size-1.5 rounded-full bg-indigo-400 shrink-0" />
-                {u}
-              </li>
-            ))}
-          </ul>
-        </div>
       </section>
 
       {/* exam history */}
@@ -238,6 +188,92 @@ export default function Profile() {
       >
         خروج از حساب
       </button>
+
+      {/* پاپ‌آپ به‌روزرسانی و نسخه‌های بعدی */}
+      {updateOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-3 backdrop-blur-sm sm:items-center sm:p-4"
+          onClick={() => setUpdateOpen(false)}
+        >
+          <div
+            className="w-full max-w-md max-h-[85dvh] overflow-y-auto bg-white border border-[#e6e8f0] rounded-t-3xl sm:rounded-3xl p-5 pb-8 space-y-4 animate-pop shadow-2xl shadow-indigo-900/20"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold flex items-center gap-2">
+                <Rocket className="size-4.5 text-indigo-600" /> به‌روزرسانی
+              </h3>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] text-slate-400" dir="ltr">v{APP_VERSION}</span>
+                <button
+                  onClick={() => setUpdateOpen(false)}
+                  className="size-9 rounded-xl bg-[#f1f2f6] border border-[#e6e8f0] grid place-items-center text-slate-500"
+                >
+                  <X className="size-4" />
+                </button>
+              </div>
+            </div>
+
+            {release === undefined ? (
+              <div className="skeleton h-12" />
+            ) : (
+              <div
+                className={`flex items-center gap-3 rounded-2xl border p-3 ${
+                  updateAvailable
+                    ? 'border-indigo-500/30 bg-indigo-500/5'
+                    : 'border-emerald-500/30 bg-emerald-500/5'
+                }`}
+              >
+                <span
+                  className={`size-9 rounded-xl grid place-items-center shrink-0 ${
+                    updateAvailable ? 'bg-indigo-500/15 text-indigo-600' : 'bg-emerald-500/15 text-emerald-600'
+                  }`}
+                >
+                  {updateAvailable ? <Download className="size-4.5" /> : <BadgeCheck className="size-4.5" />}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-bold">
+                    {updateAvailable ? (
+                      <>نسخهٔ <span dir="ltr">{release.version}</span> منتشر شده</>
+                    ) : release === null ? (
+                      'وضعیت نسخه نامشخص است'
+                    ) : (
+                      'اپلیکیشن به‌روز است'
+                    )}
+                  </div>
+                  <div className="text-[11px] text-slate-500 mt-0.5">
+                    {updateAvailable
+                      ? 'برای دریافت جدیدترین امکانات، نسخهٔ جدید را نصب کنید'
+                      : release === null
+                      ? 'ارتباط با سرور برقرار نشد — بعداً دوباره بررسی کنید'
+                      : 'آخرین نسخهٔ منتشرشده را استفاده می‌کنید'}
+                  </div>
+                </div>
+                {updateAvailable && updateUrl && (
+                  <button
+                    onClick={openUpdate}
+                    className="shrink-0 rounded-xl bg-indigo-500 hover:bg-indigo-400 px-3 py-2 text-[11px] font-bold text-white transition-colors active:scale-95"
+                  >
+                    به‌روزرسانی
+                  </button>
+                )}
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <div className="text-[11px] font-bold text-slate-400">به‌زودی در نسخه‌های بعدی</div>
+              <ul className="space-y-1.5">
+                {UPCOMING.map((u) => (
+                  <li key={u} className="flex items-center gap-2 text-[13px] text-slate-600">
+                    <span className="size-1.5 rounded-full bg-indigo-400 shrink-0" />
+                    {u}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -5,7 +5,7 @@ import { api } from '../lib/api.js'
 import SectionIcon, { sectionGradient } from '../components/SectionIcon.jsx'
 import ReviewCard from '../components/ReviewCard.jsx'
 
-const toFa = (n) => Number(n).toLocaleString('fa-IR')
+const toFa = (n) => (Number.isFinite(Number(n)) ? Number(n).toLocaleString('fa-IR') : '۰')
 
 function ScoreRing({ score }) {
   const r = 70
