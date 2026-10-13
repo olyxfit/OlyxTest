@@ -250,8 +250,9 @@ app.post('/api/otp/request', async (req, res) => {
       ok: true,
       isNewUser: !db.users.some((u) => u.phone === phone),
       expiresIn: OTP_TTL / 1000,
-      // devCode فقط خارج از پروداکشن برمی‌گردد — در غیر این صورت ورود به هر شماره‌ای ممکن می‌شد
-      ...(result.devCode && process.env.NODE_ENV !== 'production' ? { devCode: result.devCode } : {}),
+      // وقتی کانال پیامک فعال نیست (KAVENEGAR_API_KEY ست نشده)، کد در خود اپ نمایش داده می‌شود
+      // تا ورود ممکن بماند؛ با فعال‌شدن پیامک این فیلد دیگر برنمی‌گردد
+      ...(result.devCode ? { devCode: result.devCode } : {}),
     })
   } catch (err) {
     db.otps = db.otps.filter((o) => o.phone !== phone)

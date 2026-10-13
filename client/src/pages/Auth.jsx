@@ -285,7 +285,7 @@ export default function Auth() {
 
           {devCode && (
             <div className="text-sm text-amber-600 bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3 text-center">
-              حالت توسعه — کد: <span className="font-bold text-base">{toFa(devCode)}</span>
+              پیامک فعال نیست — کد تایید: <span className="font-bold text-base">{toFa(devCode)}</span>
             </div>
           )}
 
