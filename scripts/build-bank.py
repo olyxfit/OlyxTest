@@ -2,11 +2,11 @@
 """Builds app/server/bank.json from the question sources.
 
 Sources:
-  - نمونه سوالات/questions.json                        (351 unified records)
-  - نمونه سوالات/اینترنتی/وب/telegram_سوالات_رونویسی.txt  (transcribed telegram posts)
-  - نمونه سوالات/theory/*.json                         (authored from the 15 theory booklets)
-  - نمونه سوالات/تالیفی/books/*.json                    (authored from the bodybuilding & fitness books)
-  - نمونه سوالات/اینترنتی/کانال */posts.json             (telegram channel quiz dumps + ✅-marked exam sheets)
+  - sample-questions/questions.json                        (351 unified records)
+  - sample-questions/online/web/telegram_questions-transcript.txt  (transcribed telegram posts)
+  - sample-questions/theory/*.json                         (authored from the 15 theory booklets)
+  - sample-questions/authored/books/*.json                    (authored from the bodybuilding & fitness books)
+  - sample-questions/online/channel-*/posts.json             (telegram channel quiz dumps + ✅-marked exam sheets)
 
 Sections (federation-aligned, 29 items):
   تئوری عمومی (۱۵): g-mabani, g-tahlil, g-roshd, g-anatomy, g-physio, g-akhlaq,
@@ -21,7 +21,7 @@ import json, re, sys, unicodedata
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-SRC = ROOT / 'نمونه سوالات'
+SRC = ROOT / 'sample-questions'
 OUT = Path(__file__).resolve().parent / '..' / 'server' / 'bank.json'
 
 def norm(s):
@@ -131,7 +131,7 @@ def from_json():
     return out
 
 def from_telegram():
-    txt = open(SRC / 'اینترنتی' / 'وب' / 'telegram_سوالات_رونویسی.txt', encoding='utf-8').read()
+    txt = open(SRC / 'online' / 'web' / 'telegram_questions-transcript.txt', encoding='utf-8').read()
     posts = re.split(r'===\s*post(\d+(?:-\d+)?)\s*===', txt)
     out = []
     for i in range(1, len(posts), 2):
@@ -175,7 +175,7 @@ def from_old():
     """Merges the previously hand-authored app questions.
     Federation-flagged ones (examId) keep a 'fed' marker so the server can
     build a dedicated federation mock exam from them."""
-    d = json.load(open(SRC / 'تالیفی' / 'old_app_questions.json'))
+    d = json.load(open(SRC / 'authored' / 'old_app_questions.json'))
     out = []
     for x in d:
         rec = {
@@ -211,7 +211,7 @@ def from_theory():
     Each record already carries federation topic ids (topics); shared
     general topics are also mapped onto their bb/fit counterparts."""
     out = []
-    for path in sorted((SRC / 'theory').glob('*.json')) + sorted((SRC / 'تالیفی' / 'books').glob('*.json')):
+    for path in sorted((SRC / 'theory').glob('*.json')) + sorted((SRC / 'authored' / 'books').glob('*.json')):
         for x in json.load(open(path)):
             opts = [x['options'][k] for k in ['الف', 'ب', 'ج', 'د'] if k in x['options']]
             ans = LETTER_TO_IDX.get(x['answer'], -1)
@@ -274,7 +274,7 @@ def from_tgquiz():
     رأی برتر ≥۳۰٪ است وارد می‌شوند. پست‌های متنی دارای برگهٔ آزمون با
     گزینهٔ علامت‌خوردهٔ ✅ هم استخراج می‌شوند."""
     out = []
-    for path in sorted((SRC / 'اینترنتی').glob('کانال */posts.json')):
+    for path in sorted((SRC / 'online').glob('channel-*/posts.json')):
         d = json.load(open(path))
         ch = d['channel']
         for p in d['posts']:
@@ -309,7 +309,7 @@ def from_tgquiz():
 def from_fedaks():
     """سوالات رونویسی‌شده از عکس‌های برگه آزمون فدراسیون (اینترنتی/فدراسیون/*.json)."""
     out = []
-    for path in sorted((SRC / 'اینترنتی' / 'فدراسیون').glob('*.json')):
+    for path in sorted((SRC / 'online' / 'federation').glob('*.json')):
         for x in json.load(open(path)):
             opts = [x['options'][k] for k in ['الف', 'ب', 'ج', 'د'] if k in x['options']]
             ans = LETTER_TO_IDX.get(x['answer'], -1)
