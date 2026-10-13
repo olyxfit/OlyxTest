@@ -1,0 +1,22 @@
+node_modules/
+client/node_modules/
+client/dist/
+server/.env
+server/data/
+*.log
+*.apk
+*.tmp
+
+# خروجی‌های بیلد اندروید (سورس پروژهٔ android کامیت می‌شود)
+client/android/.gradle/
+client/android/build/
+client/android/app/build/
+client/android/app/release/
+client/android/local.properties
+client/android/.idea/
+client/android/*.iml
+client/android/**/*.keystore
+client/android/**/*.jks
+
+# APKهای سایت باید داخل ریپو باشند — لینک دانلود لندینگ به آن‌ها اشاره دارد
+!publish/*.apk

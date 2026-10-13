@@ -1,0 +1,13 @@
+node_modules
+client/node_modules
+client/android
+client/dist
+server/data
+server/.env
+scripts
+/azmoon-app.apk
+/آزمون-مربیگری.apk
+*.log
+.railwayignore
+.git
+.env

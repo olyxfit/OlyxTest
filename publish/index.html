@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Olyxtest.ai | آمادگی آزمون مربیگری بدنسازی و فیتنس</title>
+  <meta name="description" content="بانک سوالات واقعی، آزمون جامع و تک‌درس در قالب فدراسیون، پاسخ تشریحی و پیگیری پیشرفت — برای آزمون مربیگری درجه ۳ بدنسازی و فیتنس." />
+  <meta name="theme-color" content="#ffffff" />
+  <link rel="icon" type="image/svg+xml" href="olyx-logo.svg" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" />
+  <style>
+    :root {
+      --blue: #2563eb;
+      --blue-dark: #1e40af;
+      --indigo: #4f46e5;
+      --emerald: #059669;
+      --emerald-light: #34d399;
+      --cyan: #00c8fd;
+      --text: #0f172a;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --bg-alt: #f6f8fc;
+      --card: #ffffff;
+      --radius: 20px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: "Vazirmatn", "Segoe UI", system-ui, sans-serif;
+      background: #fff;
+      color: var(--text);
+      line-height: 1.8;
+      overflow-x: hidden;
+    }
+    img { max-width: 100%; }
+    a { text-decoration: none; color: inherit; }
+    .container { max-width: 1100px; margin-inline: auto; padding-inline: 24px; }
+    .section { padding: clamp(56px, 9vw, 96px) 0; }
+    .section.alt { background: var(--bg-alt); }
+
+    /* ---------- header ---------- */
+    header {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(255,255,255,.85);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav {
+      display: flex; align-items: center; justify-content: space-between;
+      height: 68px;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 1.05rem; }
+    .brand img { width: 36px; height: 36px; }
+    .nav-links { display: flex; gap: 28px; font-size: .9rem; font-weight: 600; color: var(--muted); }
+    .nav-links a:hover { color: var(--blue); }
+    .nav-cta { display: flex; gap: 10px; }
+    @media (max-width: 760px) { .nav-links { display: none; } }
+
+    /* ---------- buttons ---------- */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+      padding: 12px 26px; border-radius: 14px;
+      font-family: inherit; font-size: .95rem; font-weight: 700;
+      border: 1.5px solid transparent; cursor: pointer;
+      transition: transform .18s, box-shadow .18s, background .18s;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn-primary { background: var(--blue); color: #fff; box-shadow: 0 8px 24px -8px rgba(37,99,235,.55); }
+    .btn-primary:hover { background: var(--blue-dark); transform: translateY(-2px); }
+    .btn-emerald { background: linear-gradient(135deg, var(--emerald-light), var(--emerald)); color: #04120c; box-shadow: 0 8px 28px -8px rgba(5,150,105,.5); }
+    .btn-emerald:hover { transform: translateY(-2px); }
+    .btn-ghost { background: #fff; border-color: var(--border); color: var(--text); }
+    .btn-ghost:hover { border-color: var(--blue); color: var(--blue); }
+    .btn-lg { padding: 15px 34px; font-size: 1.02rem; border-radius: 16px; }
+    .btn-sm { padding: 8px 18px; font-size: .82rem; border-radius: 11px; }
+
+    /* ---------- hero ---------- */
+    .hero { padding: clamp(48px, 8vw, 90px) 0 clamp(56px, 8vw, 90px); position: relative; }
+    .hero::before {
+      content: ""; position: absolute; inset: 0; pointer-events: none;
+      background:
+        radial-gradient(600px 320px at 85% 10%, rgba(0,200,253,.10), transparent 65%),
+        radial-gradient(700px 380px at 10% 90%, rgba(79,70,229,.08), transparent 65%);
+    }
+    .hero-grid {
+      position: relative;
+      display: grid; grid-template-columns: 1.1fr .9fr; gap: 48px; align-items: center;
+    }
+    @media (max-width: 860px) { .hero-grid { grid-template-columns: 1fr; text-align: center; } }
+    .hero h1 { font-size: clamp(1.9rem, 4.6vw, 3.1rem); font-weight: 900; line-height: 1.35; }
+    .hero h1 .grad {
+      background: linear-gradient(120deg, var(--cyan), var(--emerald-light));
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .hero p.lead { color: var(--muted); font-size: clamp(.95rem, 1.8vw, 1.1rem); margin-top: 18px; max-width: 520px; }
+    @media (max-width: 860px) { .hero p.lead { margin-inline: auto; } }
+    .hero-ctas { display: flex; gap: 14px; margin-top: 32px; flex-wrap: wrap; }
+    @media (max-width: 860px) { .hero-ctas { justify-content: center; } }
+    .hero-meta { display: flex; gap: 22px; margin-top: 28px; color: var(--muted); font-size: .8rem; flex-wrap: wrap; }
+    @media (max-width: 860px) { .hero-meta { justify-content: center; } }
+    .hero-meta b { color: var(--text); }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      border: 1px solid rgba(37,99,235,.25); background: rgba(37,99,235,.06);
+      color: var(--blue); font-size: .78rem; font-weight: 700;
+      border-radius: 999px; padding: 6px 15px; margin-bottom: 20px;
+    }
+    .hero-badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--emerald); }
+    .live-count {
+      display: inline-flex; align-items: center; gap: 10px; margin-top: 24px;
+      background: #fff; border: 1px solid var(--border); border-radius: 999px;
+      padding: 9px 20px; box-shadow: 0 12px 30px -14px rgba(15,23,42,.2);
+      font-size: .85rem; font-weight: 700; color: var(--muted);
+    }
+    .live-count b { font-size: 1.15rem; font-weight: 900; color: var(--blue); min-width: 2.2ch; text-align: center; }
+    .live-count .lc-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--emerald); animation: lc-pulse 1.6s ease-in-out infinite; }
+    @keyframes lc-pulse { 50% { opacity: .3; transform: scale(.75); } }
+
+    /* ---------- phone mock ---------- */
+    .phone-wrap { display: grid; place-items: center; position: relative; }
+    .phone {
+      position: relative; z-index: 1;
+      width: min(300px, 74vw); aspect-ratio: 9/19;
+      background: #0f172a; border-radius: 42px; padding: 10px;
+      box-shadow: 0 40px 80px -20px rgba(15,23,42,.35), 0 0 0 1px rgba(15,23,42,.08);
+      transform: rotate(-3deg);
+    }
+    .screen {
+      width: 100%; height: 100%; border-radius: 33px; overflow: hidden;
+      background: linear-gradient(180deg, #f8fafc, #eef2f7);
+      display: flex; flex-direction: column;
+    }
+    .scr-head {
+      padding: 14px 16px; background: rgba(255,255,255,.8);
+      display: flex; align-items: center; gap: 8px; font-size: .68rem; font-weight: 800;
+      border-bottom: 1px solid var(--border);
+    }
+    .scr-head img { width: 20px; }
+    .scr-body { padding: 14px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+    .scr-chip {
+      align-self: flex-start; font-size: .55rem; font-weight: 700; color: var(--blue);
+      background: rgba(37,99,235,.09); border: 1px solid rgba(37,99,235,.2);
+      border-radius: 8px; padding: 3px 9px;
+    }
+    .scr-q { font-size: .66rem; font-weight: 700; line-height: 1.9; color: var(--text); }
+    .scr-opt {
+      font-size: .6rem; color: var(--muted); background: #fff;
+      border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px;
+      display: flex; align-items: center; gap: 7px;
+    }
+    .scr-opt i { width: 14px; height: 14px; border-radius: 5px; background: #f1f5f9; display: grid; place-items: center; font-style: normal; font-size: .5rem; font-weight: 800; color: var(--muted); }
+    .scr-opt.sel { border-color: var(--indigo); background: rgba(79,70,229,.07); color: var(--indigo); }
+    .scr-opt.sel i { background: var(--indigo); color: #fff; }
+    .scr-bar { height: 5px; border-radius: 99px; background: #e2e8f0; overflow: hidden; }
+    .scr-bar b { display: block; height: 100%; width: 42%; background: linear-gradient(90deg, var(--indigo), var(--cyan)); border-radius: 99px; }
+    .scr-nav { display: flex; gap: 6px; margin-top: auto; padding: 10px 14px 16px; }
+    .scr-nav span { flex: 1; height: 30px; border-radius: 10px; background: #fff; border: 1px solid var(--border); }
+    .scr-nav span.on { background: var(--indigo); border-color: var(--indigo); }
+    .float-chip {
+      position: absolute; z-index: 2; background: #fff; border: 1px solid var(--border);
+      border-radius: 14px; padding: 9px 14px; font-size: .72rem; font-weight: 800;
+      box-shadow: 0 14px 34px -12px rgba(15,23,42,.25);
+      display: flex; align-items: center; gap: 7px; white-space: nowrap;
+    }
+    .float-chip.a { top: 12%; right: 4%; animation: floaty 4.5s ease-in-out infinite; }
+    .float-chip.b { bottom: 14%; left: 2%; animation: floaty 5.5s ease-in-out .8s infinite; }
+    @keyframes floaty { 50% { transform: translateY(-8px); } }
+    @media (max-width: 860px) { .float-chip.a { right: -2%; } .float-chip.b { left: -4%; } }
+
+    /* ---------- stats ---------- */
+    .stats { border-block: 1px solid var(--border); background: var(--bg-alt); }
+    .stats .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; padding: 34px 0; }
+    @media (max-width: 700px) { .stats .grid { grid-template-columns: repeat(2, 1fr); } }
+    .stat { text-align: center; }
+    .stat b { font-size: clamp(1.4rem, 3vw, 2rem); font-weight: 900; color: var(--blue); display: block; }
+    .stat span { font-size: .8rem; color: var(--muted); }
+
+    /* ---------- services ---------- */
+    .sec-head { text-align: center; max-width: 640px; margin: 0 auto 52px; }
+    .sec-head .kicker { color: var(--blue); font-weight: 800; font-size: .82rem; }
+    .sec-head h2 { font-size: clamp(1.5rem, 3.4vw, 2.2rem); font-weight: 900; margin-top: 8px; }
+    .sec-head p { color: var(--muted); font-size: .95rem; margin-top: 12px; }
+
+    .service { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center; }
+    .service + .service { margin-top: clamp(56px, 8vw, 90px); }
+    .service.flip > .svc-text { order: 2; }
+    @media (max-width: 800px) { .service { grid-template-columns: 1fr; gap: 32px; } .service.flip > .svc-text { order: 0; } }
+    .svc-text .tag {
+      display: inline-block; font-size: .88rem; font-weight: 800; color: var(--indigo);
+      background: rgba(79,70,229,.08); border: 1px solid rgba(79,70,229,.18);
+      border-radius: 10px; padding: 6px 16px; margin-bottom: 14px;
+    }
+    .svc-text h3 { font-size: clamp(1.25rem, 2.6vw, 1.7rem); font-weight: 900; }
+    .svc-text > p { color: var(--muted); font-size: .94rem; margin-top: 12px; }
+    .svc-list { margin-top: 20px; display: flex; flex-direction: column; gap: 12px; }
+    .svc-list li { display: flex; gap: 11px; align-items: flex-start; font-size: .9rem; list-style: none; }
+    .svc-list li::before {
+      content: ""; width: 20px; height: 20px; flex-shrink: 0; margin-top: 4px; border-radius: 50%;
+      background: rgba(5,150,105,.12) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23059669' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E") center/11px no-repeat;
+    }
+    .svc-list li b { display: block; }
+
+    /* ---------- mock panels (CSS illustration) ---------- */
+    .mock {
+      background: #fff; border: 1px solid var(--border); border-radius: var(--radius);
+      box-shadow: 0 24px 60px -20px rgba(15,23,42,.14); padding: 22px;
+      position: relative; overflow: hidden;
+    }
+    .mock::before {
+      content: ""; position: absolute; inset: 0 0 auto; height: 4px;
+      background: linear-gradient(90deg, var(--cyan), var(--indigo), var(--emerald-light));
+    }
+    .mock-title { font-size: .78rem; font-weight: 800; color: var(--muted); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    .mock-title i { width: 26px; height: 26px; border-radius: 8px; background: rgba(79,70,229,.1); display: grid; place-items: center; font-style: normal; }
+    .mock-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px dashed var(--border); font-size: .8rem; }
+    .mock-row:last-child { border-bottom: 0; }
+    .mock-row .rank { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; font-size: .7rem; font-weight: 800; background: #f1f5f9; color: var(--muted); }
+    .mock-row .rank.g1 { background: linear-gradient(135deg, #fde68a, #f59e0b); color: #78350f; }
+    .mock-row .rank.g2 { background: linear-gradient(135deg, #e2e8f0, #cbd5e1); color: #334155; }
+    .mock-row .rank.g3 { background: linear-gradient(135deg, #fdba74, #ea580c); color: #fff; }
+    .mock-row .who { flex: 1; }
+    .mock-row .who b { display: block; font-size: .8rem; }
+    .mock-row .who span { font-size: .66rem; color: var(--muted); }
+    .mock-row .pts { font-weight: 800; color: var(--emerald); font-size: .82rem; }
+    .mock-bar { margin-top: 6px; }
+    .mock-bar .lbl { display: flex; justify-content: space-between; font-size: .7rem; font-weight: 700; margin-bottom: 5px; }
+    .mock-bar .lbl span:last-child { color: var(--blue); }
+    .mock-bar .trk { height: 8px; border-radius: 99px; background: #eef2f7; overflow: hidden; }
+    .mock-bar .trk i { display: block; height: 100%; border-radius: 99px; }
+    .mock-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .mock-card { border: 1px solid var(--border); border-radius: 14px; padding: 14px; font-size: .74rem; }
+    .mock-card b { display: block; font-size: .78rem; margin-bottom: 4px; }
+    .mock-card span { color: var(--muted); font-size: .66rem; }
+    .mock-card .n { font-size: 1.2rem; font-weight: 900; color: var(--indigo); }
+    .q-chip { display: inline-block; background: #f1f5f9; border-radius: 7px; padding: 3px 9px; font-size: .62rem; font-weight: 700; color: var(--muted); margin: 3px 2px; }
+    .expl { margin-top: 14px; border: 1px solid rgba(245,158,11,.3); background: rgba(245,158,11,.07); border-radius: 12px; padding: 12px 14px; font-size: .74rem; color: #92400e; line-height: 1.9; }
+    .expl b { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; font-size: .74rem; }
+
+    /* ---------- download ---------- */
+    .dl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    @media (max-width: 760px) { .dl-grid { grid-template-columns: 1fr; } }
+    .dl-card {
+      background: #fff; border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 34px 30px; text-align: center;
+      transition: transform .2s, box-shadow .2s, border-color .2s;
+    }
+    .dl-card:hover { transform: translateY(-4px); box-shadow: 0 24px 50px -18px rgba(15,23,42,.16); border-color: rgba(37,99,235,.35); }
+    .dl-card .ic {
+      width: 64px; height: 64px; margin: 0 auto 18px; border-radius: 20px;
+      display: grid; place-items: center;
+    }
+    .dl-card h3 { font-size: 1.2rem; font-weight: 900; }
+    .dl-card p { color: var(--muted); font-size: .86rem; margin: 10px 0 22px; min-height: 52px; }
+    .dl-card .note { margin-top: 14px; font-size: .72rem; color: var(--muted); }
+    .badge-soon { font-size: .66rem; font-weight: 800; color: var(--emerald); background: rgba(5,150,105,.1); border: 1px solid rgba(5,150,105,.25); border-radius: 999px; padding: 2px 10px; }
+
+    /* ---------- faq ---------- */
+    .faq { max-width: 760px; margin-inline: auto; }
+    .faq-item { border: 1px solid var(--border); border-radius: 16px; margin-bottom: 12px; background: #fff; overflow: hidden; }
+    .faq-item summary {
+      list-style: none; cursor: pointer; padding: 18px 22px;
+      font-weight: 700; font-size: .95rem; display: flex; justify-content: space-between; align-items: center;
+    }
+    .faq-item summary::-webkit-details-marker { display: none; }
+    .faq-item summary::after {
+      content: ""; width: 9px; height: 9px; border-left: 2px solid var(--muted); border-bottom: 2px solid var(--muted);
+      transform: rotate(45deg); transition: transform .2s; flex-shrink: 0; margin-right: 12px;
+    }
+    .faq-item[open] summary::after { transform: rotate(-135deg); }
+    .faq-item .a { padding: 0 22px 20px; color: var(--muted); font-size: .88rem; }
+
+    /* ---------- final cta ---------- */
+    .final {
+      background: linear-gradient(135deg, #0f172a, #1e293b);
+      border-radius: 28px; color: #fff; text-align: center;
+      padding: clamp(40px, 6vw, 64px) 28px; position: relative; overflow: hidden;
+    }
+    .final::before {
+      content: ""; position: absolute; inset: 0;
+      background: radial-gradient(500px 220px at 80% 0%, rgba(0,200,253,.18), transparent 60%);
+    }
+    .final h2 { font-size: clamp(1.4rem, 3.4vw, 2.1rem); font-weight: 900; position: relative; }
+    .final p { color: #94a3b8; margin: 12px auto 28px; max-width: 460px; font-size: .92rem; position: relative; }
+    .final .btns { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; position: relative; }
+
+    /* ---------- footer ---------- */
+    footer { padding: 44px 0 34px; }
+    .foot { display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap; }
+    .foot .links { display: flex; gap: 22px; font-size: .82rem; color: var(--muted); }
+    .foot .links a:hover { color: var(--blue); }
+    .foot small { color: var(--muted); font-size: .74rem; display: block; margin-top: 6px; }
+  </style>
+</head>
+<body>
+
+  <!-- ══════════ هدر ══════════ -->
+  <header>
+    <div class="container nav">
+      <a class="brand" href="#">
+        <img src="olyx-logo.svg" alt="Olyx" />
+        <span dir="ltr">Olyxtest.ai</span>
+      </a>
+      <nav class="nav-links">
+        <a href="#services">امکانات</a>
+        <a href="#download">دانلود</a>
+        <a href="#faq">سوالات متداول</a>
+      </nav>
+      <div class="nav-cta">
+        <a class="btn btn-primary btn-sm" href="/">ورود به وب‌اپ</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- ══════════ هیرو ══════════ -->
+  <section class="hero">
+    <div class="container hero-grid">
+      <div>
+        <span class="hero-badge">آمادگی آزمون مربیگری درجه ۳ فدراسیون</span>
+        <h1>برای آزمون مربیگری<br /><span class="grad">بدنسازی و فیتنس</span> آماده شو</h1>
+        <p class="lead">
+          بانک سوالات واقعی ادوار گذشته، آزمون‌های جامع در قالب برگهٔ رسمی فدراسیون،
+          پاسخ تشریحی هر سوال و تحلیل نقاط ضعف — همه در یک اپ سبک و سریع.
+        </p>
+        <div class="hero-ctas">
+          <a class="btn btn-emerald btn-lg" href="azmoon-app.apk" download>
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            دانلود مستقیم APK
+          </a>
+          <a class="btn btn-ghost btn-lg" href="/">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            ورود به وب‌اپ
+          </a>
+        </div>
+        <div class="hero-meta">
+          <span>📦 حجم <b>~۹ مگابایت</b></span>
+          <span>🤖 اندروید <b>۷+</b></span>
+          <span>🌐 نسخهٔ وب <b>بدون نصب</b></span>
+          <span>🎁 اولین آزمون <b>رایگان</b></span>
+        </div>
+        <div class="live-count" id="live-count" hidden>
+          <span class="lc-dot"></span>
+          <b id="users-count">۰</b>
+          <span>کاربر ثبت‌نام‌شده در حال آماده شدن برای آزمون</span>
+        </div>
+      </div>
+
+      <!-- ماکاپ گوشی -->
+      <div class="phone-wrap">
+        <div class="float-chip a">🔥 استریک ۷ روزه</div>
+        <div class="float-chip b">🏅 رتبه ۳ جدول امتیازات</div>
+        <div class="phone">
+          <div class="screen">
+            <div class="scr-head"><img src="olyx-logo.svg" alt="" /> Olyxtest.ai</div>
+            <div class="scr-body">
+              <div class="scr-bar"><b></b></div>
+              <span class="scr-chip">آناتومی وزنه‌تمرینی</span>
+              <p class="scr-q">کدام عضله در بخش جلویی بازو قرار دارد و وظیفهٔ اصلی آن خم کردن مفصل آرنج است؟</p>
+              <div class="scr-opt"><i>الف</i> سه‌سر بازویی</div>
+              <div class="scr-opt sel"><i>✓</i> دوسر بازویی</div>
+              <div class="scr-opt"><i>ج</i> دلتوئید</div>
+              <div class="scr-opt"><i>د</i> ذوزنقه‌ای</div>
+            </div>
+            <div class="scr-nav"><span class="on"></span><span></span><span></span><span></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ آمار ══════════ -->
+  <section class="stats">
+    <div class="container grid">
+      <div class="stat"><b dir="ltr">+۱۷۵۰</b><span>سوال با پاسخ تشریحی</span></div>
+      <div class="stat"><b>۶</b><span>درس تخصصی در هر آزمون جامع</span></div>
+      <div class="stat"><b>۳۰</b><span>سوال در قالب برگهٔ فدراسیون</span></div>
+      <div class="stat"><b>روزانه</b><span>کوییز رایگان برای همه</span></div>
+    </div>
+  </section>
+
+  <!-- ══════════ خدمات / امکانات ══════════ -->
+  <section class="section" id="services">
+    <div class="container">
+      <div class="sec-head">
+        <div class="kicker">امکانات Olyxtest</div>
+        <h2>هرچه برای قبولی لازم داری، یک‌جا</h2>
+        <p>از تمرین روزانه تا شبیه‌سازی کامل جلسهٔ آزمون — مسیر آماده‌سازی‌ات را ما طراحی کرده‌ایم.</p>
+      </div>
+
+      <!-- سرویس ۱: آزمون جامع -->
+      <div class="service">
+        <div class="svc-text">
+          <span class="tag">شبیه‌سازی واقعی</span>
+          <h3>آزمون جامع در قالب فدراسیون</h3>
+          <p>
+            آزمون‌های ۳۰ سوالی دقیقاً با چیدمان برگهٔ رسمی درجه ۳ فدراسیون —
+            ۵ سوال از هر درس تخصصی، به ترتیب بلوکی درس‌ها و با تایمر واقعی.
+          </p>
+          <ul class="svc-list">
+            <li><span><b>۶ درس تخصصی</b>تغذیه، آناتومی، فیزیولوژی، سیستم‌های تمرین، طراحی تمرین و درس جنسیتی (داوری آقایان / فنی تخصصی بانوان)</span></li>
+            <li><span><b>رشته و جنسیت دلخواه</b>بدنسازی یا فیتنس، آقایان یا بانوان</span></li>
+            <li><span><b>ده‌ها سری آزمون</b>با سوالات غیرتکراری در هر سری</span></li>
+          </ul>
+        </div>
+        <div class="mock">
+          <div class="mock-title"><i>📋</i> آزمون جامع بدنسازی آقایان — سری ۱</div>
+          <div class="mock-bar"><div class="lbl"><span>تغذیه و مکمل‌ها</span><span>۵/۵</span></div><div class="trk"><i style="width:100%;background:linear-gradient(90deg,#34d399,#059669)"></i></div></div>
+          <div class="mock-bar"><div class="lbl"><span>آناتومی</span><span>۴/۵</span></div><div class="trk"><i style="width:80%;background:linear-gradient(90deg,#fda4af,#e11d48)"></i></div></div>
+          <div class="mock-bar"><div class="lbl"><span>فیزیولوژی</span><span>۳/۵</span></div><div class="trk"><i style="width:60%;background:linear-gradient(90deg,#7dd3fc,#0284c7)"></i></div></div>
+          <div class="mock-bar"><div class="lbl"><span>سیستم‌های تمرین</span><span>۵/۵</span></div><div class="trk"><i style="width:100%;background:linear-gradient(90deg,#c4b5fd,#7c3aed)"></i></div></div>
+          <div class="mock-bar"><div class="lbl"><span>طراحی تمرین</span><span>۴/۵</span></div><div class="trk"><i style="width:80%;background:linear-gradient(90deg,#fcd34d,#d97706)"></i></div></div>
+          <div class="mock-bar"><div class="lbl"><span>داوری</span><span>۵/۵</span></div><div class="trk"><i style="width:100%;background:linear-gradient(90deg,#94a3b8,#475569)"></i></div></div>
+        </div>
+      </div>
+
+      <!-- سرویس ۲: تمرین روزانه -->
+      <div class="service flip">
+        <div class="svc-text">
+          <span class="tag">تمرین هر روز</span>
+          <h3>کوییز روزانه، تک‌درس و آزمون‌ساز</h3>
+          <p>
+            هر روز ۱۰ سوال ترکیبی رایگان برای گرم نگه داشتنت؛ و هر وقت خواستی
+            روی یک درس خاص عمیق شو یا آزمون دلخواهت را بساز.
+          </p>
+          <ul class="svc-list">
+            <li><span><b>کوییز روزانه رایگان</b>۱۰ سوال جدید هر روز برای همهٔ کاربران</span></li>
+            <li><span><b>آزمون تک‌درس</b>کل بانک هر درس در یک آزمون اختصاصی</span></li>
+            <li><span><b>استریک و امتیاز</b>هر پاسخ درست ۱۰ امتیاز؛ روزهای متوالی‌ات را بشمار</span></li>
+          </ul>
+        </div>
+        <div class="mock">
+          <div class="mock-title"><i>☀️</i> کوییز امروز</div>
+          <div class="mock-cards">
+            <div class="mock-card"><b>سوال امروز</b><span class="n">۱۰</span><span>سوال ترکیبی از دروس</span></div>
+            <div class="mock-card"><b>استریک</b><span class="n">🔥 ۷</span><span>روز متوالی فعال</span></div>
+            <div class="mock-card"><b>امتیاز امروز</b><span class="n" dir="ltr">+۸۰</span><span>۸ پاسخ درست</span></div>
+            <div class="mock-card"><b>کوییز بعدی</b><span class="n">فردا</span><span>هر روز تازه می‌شود</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- سرویس ۳: پاسخ تشریحی و تحلیل -->
+      <div class="service">
+        <div class="svc-text">
+          <span class="tag">یادگیری عمیق</span>
+          <h3>پاسخ تشریحی و تحلیل نقاط ضعف</h3>
+          <p>
+            بعد از هر آزمون، پاسخ درست و توضیح کامل هر سوال را می‌بینی و
+            عملکردت به تفکیک درس تحلیل می‌شود تا دقیقاً بدانی کجا ضعیفی.
+          </p>
+          <ul class="svc-list">
+            <li><span><b>پاسخ تشریحی هر سوال</b>نه فقط گزینهٔ صحیح — دلیلش را هم یاد بگیر</span></li>
+            <li><span><b>فیلتر بررسی</b>فقط غلط‌ها، فقط نشانه‌گذاری‌شده‌ها یا همه</span></li>
+            <li><span><b>گزارش پیشرفت</b>روند نمره‌ها و درصد هر درس در صفحهٔ آمار</span></li>
+          </ul>
+        </div>
+        <div class="mock">
+          <div class="mock-title"><i>💡</i> بررسی پاسخ‌ها</div>
+          <span class="q-chip">درست (۲۱)</span><span class="q-chip">غلط (۶)</span><span class="q-chip">نشانه‌گذاری (۳)</span>
+          <div class="expl">
+            <b>💡 پاسخ تشریحی</b>
+            عضلهٔ دوسر بازویی (Biceps Brachii) در قسمت جلویی بازو قرار دارد و در
+            حرکاتی مثل خم کردن آرنج (curl) نقش اصلی را ایفا می‌کند.
+          </div>
+        </div>
+      </div>
+
+      <!-- سرویس ۴: رقابت -->
+      <div class="service flip">
+        <div class="svc-text">
+          <span class="tag">انگیزه رقابت</span>
+          <h3>جدول امتیازات و رقابت</h3>
+          <p>
+            هر پاسخ درست امتیاز دارد؛ در جدول امتیازات روزانه، هفتگی و ماهانه
+            با بقیهٔ داوطلب‌ها رقابت کن و جایگاهت را ببین.
+          </p>
+          <ul class="svc-list">
+            <li><span><b>۴ بازهٔ رتبه‌بندی</b>امروز، ۷ روز، ۳۰ روز و کل دوره</span></li>
+            <li><span><b>بهترین نمره و تعداد آزمون</b>پروفایل رقابتی هر کاربر</span></li>
+          </ul>
+        </div>
+        <div class="mock">
+          <div class="mock-title"><i>🏆</i> جدول امتیازات — این هفته</div>
+          <div class="mock-row"><span class="rank g1">۱</span><div class="who"><b>امیر</b><span>۱۲ آزمون • بهترین ۹۳٪</span></div><span class="pts">۱٬۲۴۰</span></div>
+          <div class="mock-row"><span class="rank g2">۲</span><div class="who"><b>سارا</b><span>۹ آزمون • بهترین ۹۰٪</span></div><span class="pts">۹۸۰</span></div>
+          <div class="mock-row"><span class="rank g3">۳</span><div class="who"><b>شما</b><span>۷ آزمون • بهترین ۸۷٪</span></div><span class="pts">۸۶۰</span></div>
+          <div class="mock-row"><span class="rank">۴</span><div class="who"><b>رضا</b><span>۶ آزمون • بهترین ۸۰٪</span></div><span class="pts">۷۱۰</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ دانلود ══════════ -->
+  <section class="section alt" id="download">
+    <div class="container">
+      <div class="sec-head">
+        <div class="kicker">دانلود و شروع</div>
+        <h2>همین حالا شروع کن</h2>
+        <p>دو راه برای استفاده از Olyxtest داری — نصب اپ اندروید یا ورود مستقیم از مرورگر.</p>
+      </div>
+      <div class="dl-grid">
+        <div class="dl-card">
+          <div class="ic" style="background:linear-gradient(135deg,#34d399,#059669)">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#04120c" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </div>
+          <h3>اپلیکیشن اندروید <span class="badge-soon">پیشنهادی</span></h3>
+          <p>نصب مستقیم فایل APK — سریع، سبک و بدون نیاز به گوگل‌پلی یا مارکت.</p>
+          <a class="btn btn-emerald btn-lg" href="azmoon-app.apk" download style="width:100%">
+            دانلود مستقیم APK
+          </a>
+          <div class="note">پس از دانلود، اجازهٔ «نصب از منابع ناشناس» را فعال کنید</div>
+        </div>
+        <div class="dl-card">
+          <div class="ic" style="background:linear-gradient(135deg,#60a5fa,#2563eb)">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          </div>
+          <h3>وب‌اپ — بدون نصب</h3>
+          <p>همین الان از مرورگر موبایل یا کامپیوتر وارد شو؛ همهٔ امکانات بدون نصب.</p>
+          <a class="btn btn-primary btn-lg" href="/" style="width:100%">
+            ورود به وب‌اپ
+          </a>
+          <div class="note">روی همهٔ دستگاه‌ها کار می‌کند — اندروید، آیفون و دسکتاپ</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ سوالات متداول ══════════ -->
+  <section class="section" id="faq">
+    <div class="container">
+      <div class="sec-head">
+        <div class="kicker">سوالات متداول</div>
+        <h2>سوالی داری؟</h2>
+      </div>
+      <div class="faq">
+        <details class="faq-item" open>
+          <summary>فرق وب‌اپ و اپ اندروید چیست؟</summary>
+          <div class="a">هیچ تفاوتی در امکانات ندارند و حسابت بین هر دو مشترک است. اپ اندروید روان‌تر و سریع‌تر است؛ وب‌اپ بدون نصب و روی هر دستگاهی کار می‌کند.</div>
+        </details>
+        <details class="faq-item">
+          <summary>نصب APK امن است؟ چرا در مارکت‌ها نیست؟</summary>
+          <div class="a">فایل مستقیم از سرور خودمان دانلود می‌شود. هنگام نصب، اندروید از تو می‌خواهد «نصب از منابع ناشناس» را برای مرورگرت فعال کنی — این فقط برای همین نصب است.</div>
+        </details>
+        <details class="faq-item">
+          <summary>چقدر از اپ رایگان است؟</summary>
+          <div class="a">کوییز روزانه، آزمون‌های تک‌درس و اولین آزمون جامعت همیشه رایگان است. برای دسترسی نامحدود به همهٔ آزمون‌های جامع و آزمون‌ساز، اشتراک لازم است.</div>
+        </details>
+        <details class="faq-item">
+          <summary>آزمون‌ها دقیقاً شبیه آزمون فدراسیون هستند؟</summary>
+          <div class="a">بله — آزمون جامع ۳۰ سوال با ۵ سوال از هر درس تخصصی و چینش بلوکی، دقیقاً در قالب آزمون کتبی درجه ۳ فدراسیون طراحی شده و بخشی از سوالات از ادوار واقعی گذشته است.</div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ CTA پایانی ══════════ -->
+  <section class="section" style="padding-top:0">
+    <div class="container">
+      <div class="final">
+        <h2>آزمون مربیگری را جدی بگیر</h2>
+        <p>اولین آزمون جامعت رایگان است — نصب کن یا از مرورگر وارد شو و سطحت را بسنج.</p>
+        <div class="btns">
+          <a class="btn btn-emerald btn-lg" href="azmoon-app.apk" download>دانلود مستقیم APK</a>
+          <a class="btn btn-lg" href="/" style="background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.2)">ورود به وب‌اپ</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ فوتر ══════════ -->
+  <footer>
+    <div class="container">
+      <div class="foot">
+        <div>
+          <a class="brand" href="#"><img src="olyx-logo.svg" alt="Olyx" /><span dir="ltr">Olyxtest.ai</span></a>
+          <small>ابزار آمادگی آزمون مربیگری بدنسازی و فیتنس — درجه ۳ فدراسیون</small>
+        </div>
+        <div class="links">
+          <a href="#services">امکانات</a>
+          <a href="#download">دانلود</a>
+          <a href="#faq">سوالات متداول</a>
+          <a href="/">وب‌اپ</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // شمارندهٔ زندهٔ کاربران ثبت‌نام‌شده — از API عمومی سرور خوانده می‌شود
+    (function () {
+      const FA = '۰۱۲۳۴۵۶۷۸۹'
+      const toFa = (n) => String(n).replace(/\d/g, (d) => FA[d])
+      const el = document.getElementById('users-count')
+      const box = document.getElementById('live-count')
+      function animate(target) {
+        const dur = 1600
+        const t0 = performance.now()
+        ;(function tick(t) {
+          const p = Math.min(1, (t - t0) / dur)
+          el.textContent = toFa(Math.round(target * (1 - Math.pow(1 - p, 3))))
+          if (p < 1) requestAnimationFrame(tick)
+        })(t0)
+      }
+      fetch('/api/public-stats')
+        .then((r) => (r.ok ? r.json() : Promise.reject()))
+        .then((d) => {
+          const n = Math.max(0, Number(d.users) || 0)
+          box.hidden = false
+          animate(n)
+        })
+        .catch(() => {}) // اگر API در دسترس نبود (هاست استاتیک)، بلوک مخفی می‌ماند
+    })()
+  </script>
+
+</body>
+</html>

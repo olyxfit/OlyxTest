@@ -1,0 +1,9 @@
+node_modules
+client/node_modules
+client/android
+client/dist
+server/data
+scripts
+/azmoon-app.apk
+/آزمون-مربیگری.apk
+*.log

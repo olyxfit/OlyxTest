@@ -1,0 +1,322 @@
+import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { User, Phone, Lock, Eye, EyeOff, ShieldCheck, ArrowLeft, ArrowRight } from 'lucide-react'
+import { useAuth } from '../lib/auth.jsx'
+
+const RESEND_SECONDS = 60
+
+const FA_DIGITS = '۰۱۲۳۴۵۶۷۸۹'
+const toFa = (s) => String(s).replace(/\d/g, (d) => FA_DIGITS[Number(d)])
+
+// پس‌زمینه لندینگ — تصاویر لوکال باشگاه (داخل APK) با کراس‌فید آرام
+const BG_IMAGES = ['/assets/bg/bg-2.jpg', '/assets/bg/bg-3.jpg', '/assets/bg/bg-1.jpg']
+
+function ImageBackground() {
+  const [idx, setIdx] = useState(0)
+  useEffect(() => {
+    BG_IMAGES.forEach((src) => {
+      const img = new Image()
+      img.src = src
+    })
+    const t = setInterval(() => setIdx((i) => (i + 1) % BG_IMAGES.length), 8000)
+    return () => clearInterval(t)
+  }, [])
+  return (
+    <div className="fixed inset-0 overflow-hidden bg-slate-950" aria-hidden>
+      {BG_IMAGES.map((src, i) => (
+        <img
+          key={src}
+          src={src}
+          alt=""
+          className={`absolute -inset-6 w-[calc(100%+3rem)] h-[calc(100%+3rem)] object-cover transition-opacity duration-[2000ms] ${
+            i === idx ? 'opacity-100' : 'opacity-0'
+          }`}
+          style={{ filter: 'saturate(0.85) contrast(1.05)' }}
+        />
+      ))}
+      <div className="absolute inset-0 bg-gradient-to-b from-slate-950/85 via-slate-950/55 to-indigo-950/90" />
+      <div className="absolute inset-0 bg-[radial-gradient(80%_50%_at_50%_0%,rgba(99,102,241,0.18),transparent_70%)]" />
+    </div>
+  )
+}
+
+export default function Auth() {
+  const [step, setStep] = useState('phone') // 'phone' | 'code'
+  const [mode, setMode] = useState('otp') // 'otp' | 'password'
+  const [userId, setUserId] = useState('')
+  const [password, setPassword] = useState('')
+  const [showPass, setShowPass] = useState(false)
+  const [name, setName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [code, setCode] = useState('')
+  const [isNewUser, setIsNewUser] = useState(false)
+  const [devCode, setDevCode] = useState('')
+  const [resendLeft, setResendLeft] = useState(0)
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  const { requestOtp, verifyOtp, login } = useAuth()
+  const nav = useNavigate()
+  const codeRef = useRef(null)
+
+  useEffect(() => {
+    if (resendLeft <= 0) return
+    const t = setTimeout(() => setResendLeft((s) => s - 1), 1000)
+    return () => clearTimeout(t)
+  }, [resendLeft])
+
+  const sendCode = async (e) => {
+    e?.preventDefault()
+    setError('')
+    setBusy(true)
+    try {
+      const d = await requestOtp(phone)
+      setIsNewUser(d.isNewUser)
+      setDevCode(d.devCode || '')
+      setStep('code')
+      setResendLeft(RESEND_SECONDS)
+      setCode('')
+      setTimeout(() => codeRef.current?.focus(), 50)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const submitCode = async (e) => {
+    e.preventDefault()
+    setError('')
+    setBusy(true)
+    try {
+      await verifyOtp(phone, code, name || undefined)
+      nav('/', { replace: true })
+    } catch (err) {
+      if (err.code === 'NAME_REQUIRED' || err.message?.includes('نام')) setIsNewUser(true)
+      setError(err.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const editPhone = () => {
+    setStep('phone')
+    setCode('')
+    setDevCode('')
+    setError('')
+  }
+
+  const submitPassword = async (e) => {
+    e.preventDefault()
+    setError('')
+    setBusy(true)
+    try {
+      const id = userId.replace(/[۰-۹]/g, (d) => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d))
+      await login(id, password)
+      nav('/', { replace: true })
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="min-h-dvh relative">
+      <ImageBackground />
+      <div className="relative min-h-dvh max-w-lg mx-auto flex flex-col justify-center px-4 sm:px-6 py-8">
+        <div className="bg-white/95 backdrop-blur-2xl rounded-[2rem] border border-white/70 shadow-[0_1px_0_rgba(255,255,255,0.8)_inset,0_24px_70px_-20px_rgba(2,6,23,0.8)] p-6 sm:p-8">
+        {/* hero */}
+        <div className="animate-pop text-center">
+          <img
+            src="/assets/olyx-logo.svg"
+            alt="Olyx"
+            className="size-16 mx-auto drop-shadow-[0_6px_22px_rgba(0,200,253,0.5)]"
+          />
+          <p dir="ltr" className="mt-3 text-lg font-black tracking-tight text-slate-800">
+            Olyxtest<span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-500 to-cyan-400">.ai</span>
+          </p>
+          <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-slate-800">
+            آمادگی آزمون
+            <br />
+            <span className="text-indigo-600">مربیگری بدنسازی</span>
+          </h1>
+          <p className="mt-3 text-slate-500 leading-7">
+            تمرین با بانک کامل سوالات تغذیه، تمرین، فیزیولوژی، طراحی تمرین، سیستم تمرینی و داوری — منطبق بر آزمون فدراسیون، با پاسخ تشریحی
+          </p>
+        </div>
+
+      {step === 'phone' && mode === 'password' && (
+        <form onSubmit={submitPassword} className="mt-10 space-y-4 animate-pop" style={{ animationDelay: '60ms' }}>
+          <div className="relative">
+            <User className="absolute right-4 top-1/2 -translate-y-1/2 size-5 text-slate-500" />
+            <input
+              className="input pr-12"
+              placeholder="نام کاربری"
+              dir="ltr"
+              style={{ textAlign: 'right' }}
+              value={userId}
+              onChange={(e) => setUserId(e.target.value)}
+              required
+              autoFocus
+            />
+          </div>
+          <div className="relative">
+            <Lock className="absolute right-4 top-1/2 -translate-y-1/2 size-5 text-slate-500" />
+            <input
+              className="input pr-12 pl-12"
+              type={showPass ? 'text' : 'password'}
+              placeholder="رمز عبور"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowPass(!showPass)}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+            >
+              {showPass ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
+            </button>
+          </div>
+
+          {error && (
+            <div className="text-sm text-rose-600 bg-rose-500/10 border border-rose-500/30 rounded-xl px-4 py-3">
+              {error}
+            </div>
+          )}
+
+          <button className="btn-primary flex items-center justify-center gap-2" disabled={busy}>
+            {busy ? 'لطفاً صبر کنید…' : 'ورود'}
+            {!busy && <ArrowLeft className="size-4" />}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => { setMode('otp'); setError('') }}
+            className="w-full text-center text-sm text-indigo-600 hover:text-indigo-700"
+          >
+            ورود با شماره موبایل و کد پیامکی
+          </button>
+        </form>
+      )}
+
+      {step === 'phone' && mode === 'otp' && (
+        <form onSubmit={sendCode} className="mt-10 space-y-4 animate-pop" style={{ animationDelay: '60ms' }}>
+          <div className="relative">
+            <Phone className="absolute right-4 top-1/2 -translate-y-1/2 size-5 text-slate-500" />
+            <input
+              className="input pr-12"
+              placeholder="شماره موبایل (۰۹...)"
+              inputMode="tel"
+              dir="ltr"
+              style={{ textAlign: 'right' }}
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              required
+              autoFocus
+            />
+          </div>
+          <p className="text-xs text-slate-500 leading-6">
+            کد تایید برای ورود یا ثبت‌نام به این شماره پیامک می‌شود.
+          </p>
+
+          {error && (
+            <div className="text-sm text-rose-600 bg-rose-500/10 border border-rose-500/30 rounded-xl px-4 py-3">
+              {error}
+            </div>
+          )}
+
+          <button className="btn-primary flex items-center justify-center gap-2" disabled={busy}>
+            {busy ? 'در حال ارسال کد…' : 'دریافت کد تایید'}
+            {!busy && <ArrowLeft className="size-4" />}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => { setMode('password'); setError('') }}
+            className="w-full text-center text-sm text-indigo-600 hover:text-indigo-700"
+          >
+            ورود با نام کاربری و رمز عبور
+          </button>
+        </form>
+      )}
+
+      {step === 'code' && (
+        <form onSubmit={submitCode} className="mt-10 space-y-4 animate-pop">
+          <div className="flex items-center justify-between">
+            <button type="button" onClick={editPhone} className="flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-700">
+              <ArrowRight className="size-4" />
+              ویرایش شماره
+            </button>
+            <span className="text-sm text-slate-600" dir="ltr">{phone}</span>
+          </div>
+
+          {isNewUser && (
+            <div className="relative">
+              <User className="absolute right-4 top-1/2 -translate-y-1/2 size-5 text-slate-500" />
+              <input
+                className="input pr-12"
+                placeholder="نام و نام خانوادگی"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
+            </div>
+          )}
+
+          <div className="relative">
+            <ShieldCheck className="absolute right-4 top-1/2 -translate-y-1/2 size-5 text-slate-500" />
+            <input
+              ref={codeRef}
+              className="input pr-12 tracking-[0.5em] text-center"
+              placeholder="کد ۴ رقمی"
+              inputMode="numeric"
+              dir="ltr"
+              maxLength={4}
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/[^\d۰-۹٠-٩]/g, '').slice(0, 4))}
+              required
+              minLength={4}
+            />
+          </div>
+          <p className="text-[11px] text-slate-400 text-center -mt-1">
+            کد را می‌توانید با ارقام فارسی یا انگلیسی وارد کنید
+          </p>
+
+          {devCode && (
+            <div className="text-sm text-amber-600 bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3 text-center">
+              حالت توسعه — کد: <span className="font-bold text-base">{toFa(devCode)}</span>
+            </div>
+          )}
+
+          {error && (
+            <div className="text-sm text-rose-600 bg-rose-500/10 border border-rose-500/30 rounded-xl px-4 py-3">
+              {error}
+            </div>
+          )}
+
+          <button className="btn-primary flex items-center justify-center gap-2" disabled={busy || code.length < 4}>
+            {busy ? 'در حال بررسی…' : isNewUser ? 'ثبت‌نام و ورود' : 'تایید و ورود'}
+            {!busy && <ArrowLeft className="size-4" />}
+          </button>
+
+          <button
+            type="button"
+            onClick={sendCode}
+            disabled={busy || resendLeft > 0}
+            className="w-full text-center text-sm text-indigo-600 disabled:text-indigo-300"
+          >
+            {resendLeft > 0 ? `ارسال مجدد کد تا ${resendLeft} ثانیه دیگر` : 'ارسال مجدد کد'}
+          </button>
+        </form>
+      )}
+
+        </div>
+
+      <p className="absolute bottom-4 inset-x-0 text-center text-xs text-slate-300">
+        آمادگی برای آزمون مربیگری درجه ۳ • پرورش اندام و فیتنس
+      </p>
+      </div>
+    </div>
+  )
+}
