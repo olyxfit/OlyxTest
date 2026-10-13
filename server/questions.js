@@ -18,6 +18,7 @@ export const questions = model.questions
 export const exams = model.exams
 export const questionsForExam = model.questionsForExam
 export const generateExamQuestions = model.generateExamQuestions
+export const generateExamSlots = model.generateExamSlots
 export const isSingleExam = model.isSingleExam
 export const examGroup = model.examGroup
 export const effectiveSectionId = model.effectiveSectionId

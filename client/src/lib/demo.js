@@ -7,7 +7,7 @@ import { createExamModel } from '../../../shared/exam-core.js'
 import { FAKE_USERS, fakeLeaderboardAttempts, isTestUser } from '../../../shared/fake-leaderboard.js'
 
 const model = createExamModel(bank)
-const { sections, specializedSectionsFor, questions, exams, questionsForExam, generateExamQuestions, isSingleExam, effectiveSectionId, shapeExam } = model
+const { sections, specializedSectionsFor, questions, exams, questionsForExam, generateExamSlots, isSingleExam, effectiveSectionId, shapeExam } = model
 const byId = new Map(questions.map((q) => [q.id, q]))
 
 const DB_KEY = 'azmoon_demo_db'
@@ -257,7 +257,10 @@ const handlers = {
           ? `۵ سوال تصادفی ${sec.title}، در قالب آزمون درجه ۳ ${disc} ${gTitle}`
           : `۳۰ سوال بلوکی از دروس تخصصی ${disc} (۵ سوال از هر درس)، در قالب آزمون کتبی درجه ۳ فدراسیون`,
       timeMinutes: mode === 'single' ? 10 : 33,
-      questionIds: generateExamQuestions(mode, sectionId, discipline, gender),
+      ...(() => {
+        const gen = generateExamSlots(mode, sectionId, discipline, gender)
+        return { questionIds: gen.ids, ...(gen.slots ? { slots: Object.fromEntries(gen.slots) } : {}) }
+      })(),
       userId: user.id,
       createdAt: Date.now(),
     }

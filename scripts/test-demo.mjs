@@ -114,7 +114,9 @@ try { await demoApi('/attempts') } catch (e) { attErr = e.code === 'SUBSCRIPTION
 assert(attErr, 'attempts قبل از اشتراک → SUBSCRIPTION_REQUIRED')
 const dailyFree = await demoApi('/daily')
 assert(dailyFree.every((q) => q.explanation === null && q.explanationLocked === true), 'daily قبل از اشتراک → تشریحی قفل')
-await demoApi('/subscribe', { method: 'POST', body: { plan: 'monthly' } })
+// /subscribe فقط برای ادمین است — مسیر واقعی کاربر = سفارش پرداخت (در دمو بلافاصله فعال می‌شود)
+const ord = await demoApi('/payment/order', { method: 'POST', body: { plan: 'monthly' } })
+assert(ord.orderId && ord.status === 'paid', 'payment/order → سفارش paid')
 
 // 7. stats + attempts + leaderboard + daily
 const st = await demoApi('/stats')

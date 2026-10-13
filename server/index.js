@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 import { getDb, save } from './db.js'
 import * as bale from './bale.js'
 import { sendVerificationSms } from './sms.js'
-import { exams, sections, specializedSectionsFor, questions, questionsForExam, generateExamQuestions, isSingleExam, effectiveSectionId, shapeExam } from './questions.js'
+import { exams, sections, specializedSectionsFor, questions, questionsForExam, generateExamSlots, isSingleExam, effectiveSectionId, shapeExam } from './questions.js'
 import { FAKE_USERS, fakeLeaderboardAttempts, isTestUser } from '../shared/fake-leaderboard.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -368,12 +368,19 @@ async function handleBaleUpdate(update) {
     const msg = update.message
     if (!msg) return
 
-    // پرداخت موفق — فعال‌سازی اشتراک
+    // پرداخت موفق — فعال‌سازی اشتراک؛ ارز و مبلغ هم دوباره با سفارش چک می‌شود
     if (msg.successful_payment) {
-      const order = getDb().orders.find((o) => o.id === msg.successful_payment.invoice_payload)
-      if (order) {
-        fulfillOrder(order, msg.successful_payment)
+      const pay = msg.successful_payment
+      const order = getDb().orders.find((o) => o.id === pay.invoice_payload)
+      const valid =
+        order && order.status === 'pending' && !orderExpired(order) &&
+        (pay.currency == null || pay.currency === 'IRR') &&
+        (pay.total_amount == null || pay.total_amount === order.amountRial)
+      if (valid) {
+        fulfillOrder(order, pay)
         await bale.sendMessage(msg.chat.id, 'پرداخت شما با موفقیت انجام شد. اشتراک فعال است — به اپلیکیشن برگردید.')
+      } else {
+        console.error('Bale successful_payment rejected:', pay.invoice_payload, pay.currency, pay.total_amount)
       }
       return
     }
@@ -489,7 +496,14 @@ app.post('/api/exams/generate', auth, (req, res) => {
         ? `۵ سوال تصادفی ${sec.title}، در قالب آزمون درجه ۳ ${disc} ${gTitle}`
         : `۳۰ سوال بلوکی از دروس تخصصی ${disc} (۵ سوال از هر درس)، در قالب آزمون کتبی درجه ۳ فدراسیون`,
     timeMinutes: mode === 'single' ? 10 : 33,
-    questionIds: generateExamQuestions(mode, sectionId, discipline, gender),
+    ...(() => {
+      const gen = generateExamSlots(mode, sectionId, discipline, gender)
+      return {
+        questionIds: gen.ids,
+        // نقشهٔ سوال←درسِ بلوک؛ برای انتساب درست سوالات مشترک در آمار
+        ...(gen.slots ? { slots: Object.fromEntries(gen.slots) } : {}),
+      }
+    })(),
     userId: req.user.id,
     createdAt: Date.now(),
   }

@@ -94,7 +94,9 @@ export function createExamModel(bank) {
   const pool = (sid) => questions.filter((q) => q.topicIds.includes(sid) && !q.fed)
 
   // نمونه‌گیری به قالب برگهٔ آزمون فدراسیون: سهم مساوی از هر درس و چینش بلوکی
-  // به ترتیب درس‌ها؛ سوالات مشترک بین درس‌ها فقط یک‌بار می‌آیند (بدون تکرار)
+  // به ترتیب درس‌ها؛ سوالات مشترک بین درس‌ها فقط یک‌بار می‌آیند (بدون تکرار).
+  // خروجی: ids + نقشهٔ سوال←درسِ بلوک — برای انتساب درست در آمار آزمون‌های تولیدی
+  // (سوال مشترک بین چند درس باید زیر درسی شمرده شود که بلوکش آمده نه تاپیک اولش)
   const sampleBlocked = (secs, total) => {
     const avail = secs.filter((s) => pool(s.id).length > 0)
     const per = Math.floor(total / avail.length)
@@ -108,7 +110,7 @@ export function createExamModel(bank) {
         if (items.length >= want) break
         if (!seen.has(q.id)) {
           seen.add(q.id)
-          items.push(q.id)
+          items.push([q.id, s.id])
         }
       }
       return { shuffled, items }
@@ -116,16 +118,18 @@ export function createExamModel(bank) {
     // اگر درسی سوال کم آورد، از سوالات باقی‌ماندهٔ همان بلوک‌ها جبران می‌کنیم
     let have = blocks.reduce((n, b) => n + b.items.length, 0)
     for (const b of blocks) {
+      const sec = avail[blocks.indexOf(b)]
       for (const q of b.shuffled) {
         if (have >= total) break
         if (!seen.has(q.id)) {
           seen.add(q.id)
-          b.items.push(q.id)
+          b.items.push([q.id, sec.id])
           have++
         }
       }
     }
-    return blocks.flatMap((b) => b.items)
+    const pairs = blocks.flatMap((b) => b.items)
+    return { ids: pairs.map(([id]) => id), slots: new Map(pairs) }
   }
 
   // ---------- تعریف آزمون‌ها ----------
@@ -221,12 +225,15 @@ export function createExamModel(bank) {
   }
 
   // آزمون تصادفی به قالب درجه ۳ فدراسیون: تک‌درس = ۵ سوال،
-  // جامع = ۶ درس × ۵ سوال = ۳۰ سوال بلوکی (درس ششم بسته به جنسیت: داوری/فنی تخصصی)
-  const generateExamQuestions = (mode, sectionId, discipline, gender = 'men') => {
-    if (mode === 'single') return shuffle(pool(sectionId)).slice(0, PER_LESSON_Q).map((q) => q.id)
+  // جامع = ۶ درس × ۵ سوال = ۳۰ سوال بلوکی (درس ششم بسته به جنسیت: داوری/فنی تخصصی).
+  // generateExamSlots علاوه بر ids، نقشهٔ سوال←درس هم می‌دهد تا در آزمون ذخیره شود.
+  const generateExamSlots = (mode, sectionId, discipline, gender = 'men') => {
+    if (mode === 'single') return { ids: shuffle(pool(sectionId)).slice(0, PER_LESSON_Q).map((q) => q.id), slots: null }
     const secs = sectionsFor(discipline, gender)
     return sampleBlocked(secs, secs.length * PER_LESSON_Q)
   }
+  const generateExamQuestions = (mode, sectionId, discipline, gender = 'men') =>
+    generateExamSlots(mode, sectionId, discipline, gender).ids
 
   // ---------- درسِ مؤثر و شکل‌دهی آزمون ----------
   const isSingleExam = (exam) =>
@@ -240,6 +247,7 @@ export function createExamModel(bank) {
   // رشته‌ای، درسِ همان گروه از بین درس‌های سوال (محتوای مشترک بین درس‌ها)
   const effectiveSectionId = (exam, q) => {
     if (isSingleExam(exam)) return exam.sectionId
+    if (exam.slots?.[q.id]) return exam.slots[q.id] // آزمون تولیدی: بلوکِ همان درس
     const slot = slotSection.get(exam.id)?.get(q.id)
     if (slot) return slot
     const group = examGroup(exam)
@@ -261,7 +269,7 @@ export function createExamModel(bank) {
 
   return {
     sectionGroups, sections, sectionsFor, specializedSectionsFor, GENDERS, questions, exams,
-    questionsForExam, generateExamQuestions,
+    questionsForExam, generateExamQuestions, generateExamSlots,
     isSingleExam, examGroup, effectiveSectionId, shapeExam,
   }
 }
