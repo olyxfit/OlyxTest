@@ -16,18 +16,18 @@ export default function Overview() {
   }, [])
 
   if (err) return <div className="empty">{err}</div>
-  if (!o) return <div className="cards">{[1, 2, 3, 4].map((i) => <div key={i} className="skel" />)}</div>
+  if (!o) return <div className="page"><div className="dash">{[1, 2, 3, 4].map((i) => <div key={i} className="skel" />)}</div></div>
 
   const cards = [
-    ['👥', 'کاربران', fa(o.users), '#e0e7ff'],
-    ['👑', 'مشترکین فعال', fa(o.activeSubs), '#fef3c7'],
-    ['📝', 'آزمون‌های برگزارشده', fa(o.attempts), '#d1fae5'],
+    ['👥', 'کاربران', fa(o.users), '#e8f0fe'],
+    ['👑', 'مشترکین فعال', fa(o.activeSubs), '#fdf0d3'],
+    ['📝', 'آزمون‌های برگزارشده', fa(o.attempts), '#dcf3e7'],
     ['🎯', 'میانگین نمره', fa(o.avgScore) + '٪', '#e0f2fe'],
     ['💰', 'درآمد (تومان)', fa(Math.round((o.revenueRial || 0) / 10)), '#ede9fe'],
-    ['🧾', 'سفارش موفق / در انتظار', `${fa(o.paidOrders)} / ${fa(o.pendingOrders)}`, '#ffe4e6'],
+    ['🧾', 'سفارش موفق / در انتظار', `${fa(o.paidOrders)} / ${fa(o.pendingOrders)}`, '#fdeaea'],
     ['❓', 'سوال در بانک', fa(o.questions), '#ccfbf1'],
-    ['🧩', 'آزمون ساخته‌شده', fa(o.generated), '#f1f5f9'],
-    ['💬', 'نظرها / اعلان‌ها', `${fa(o.feedback)} / ${fa(o.announcements)}`, '#f1f5f9'],
+    ['🧩', 'آزمون ساخته‌شده', fa(o.generated), '#eef1f6'],
+    ['💬', 'نظرها / اعلان‌ها', `${fa(o.feedback)} / ${fa(o.announcements)}`, '#eef1f6'],
   ]
 
   const f = m?.funnel
@@ -35,86 +35,96 @@ export default function Overview() {
 
   return (
     <>
-      <div className="cards">
-        {cards.map(([ic, label, val, bg]) => (
-          <div className="stat" key={label}>
-            <div className="ic" style={{ background: bg }}>{ic}</div>
-            <b>{val}</b>
-            <span>{label}</span>
-          </div>
-        ))}
+      <div className="toolbar">
+        <span className="tname"><span className="tsi">📊</span> داشبورد</span>
+        <span className="tsub">نمای کلی سامانه — متریک‌ها، قیف تبدیل و روند ۳۰ روز اخیر</span>
       </div>
 
-      {/* قیف تبدیل — ثبت‌نام → فعال‌شدن → اشتراک → پرداخت */}
-      {f && (
-        <>
-          <div className="section-title">قیف تبدیل</div>
-          <div className="panel" style={{ padding: 18, display: 'flex', gap: 10, alignItems: 'stretch', flexWrap: 'wrap' }}>
-            {[
-              ['ثبت‌نام', f.registered, '#e0e7ff', 100],
-              ['حداقل یک آزمون', f.engaged, '#d1fae5', pct(f.engaged, f.registered)],
-              ['اشتراک فعال', f.subscribed, '#fef3c7', pct(f.subscribed, f.registered)],
-              ['پرداخت موفق', f.paying, '#ede9fe', pct(f.paying, f.registered)],
-            ].map(([label, v, bg, p], i) => (
-              <div key={label} style={{ flex: 1, minWidth: 130, display: 'flex', alignItems: 'center', gap: 10 }}>
-                {i > 0 && <span style={{ color: '#cbd5e1', fontSize: 18 }}>←</span>}
-                <div style={{ flex: 1 }}>
-                  <div style={{ background: bg, borderRadius: 12, padding: '12px 14px' }}>
-                    <b style={{ fontSize: 18 }}>{fa(v)}</b>
-                    <div style={{ fontSize: 11, color: '#475569' }}>{label}</div>
-                  </div>
-                  <div style={{ height: 4, background: '#f1f5f9', borderRadius: 4, marginTop: 6, overflow: 'hidden' }}>
-                    <div style={{ width: p + '%', height: '100%', background: 'var(--indigo)', borderRadius: 4 }} />
-                  </div>
-                  <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 3 }}>{fa(p)}٪ از ثبت‌نام‌ها</div>
-                </div>
+      <div className="page">
+        {/* ویجت‌های متریک */}
+        <div className="dash">
+          {cards.map(([ic, label, val, bg]) => (
+            <div className="widget metric" key={label}>
+              <div className="wbody">
+                <div className="mic" style={{ background: bg }}>{ic}</div>
+                <div><b className="num">{val}</b><span className="mlab">{label}</span></div>
               </div>
-            ))}
-          </div>
-        </>
-      )}
+            </div>
+          ))}
+        </div>
 
-      {/* روند ۳۰ روز */}
-      {m && (
-        <>
-          <div className="section-title">روند ۳۰ روز اخیر</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14 }}>
-            <div className="panel" style={{ padding: 16 }}>
-              <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 10 }}>ثبت‌نام‌های روزانه</div>
-              <BarChart data={m.signups} color="#4f46e5" />
-            </div>
-            <div className="panel" style={{ padding: 16 }}>
-              <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 10 }}>آزمون‌های روزانه</div>
-              <BarChart data={m.attempts} color="#059669" />
-            </div>
-            <div className="panel" style={{ padding: 16 }}>
-              <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 10 }}>درآمد روزانه (تومان)</div>
-              <BarChart data={m.revenue} color="#7c3aed" />
+        {/* قیف تبدیل — ثبت‌نام → فعال‌شدن → اشتراک → پرداخت */}
+        {f && (
+          <div className="widget" style={{ marginTop: 12 }}>
+            <div className="whead"><span className="wi">▽</span> قیف تبدیل</div>
+            <div className="wbody" style={{ display: 'flex', gap: 10, alignItems: 'stretch', flexWrap: 'wrap' }}>
+              {[
+                ['ثبت‌نام', f.registered, '#e8f0fe', 100],
+                ['حداقل یک آزمون', f.engaged, '#dcf3e7', pct(f.engaged, f.registered)],
+                ['اشتراک فعال', f.subscribed, '#fdf0d3', pct(f.subscribed, f.registered)],
+                ['پرداخت موفق', f.paying, '#ede9fe', pct(f.paying, f.registered)],
+              ].map(([label, v, bg, p], i) => (
+                <div key={label} style={{ flex: 1, minWidth: 130, display: 'flex', alignItems: 'center', gap: 10 }}>
+                  {i > 0 && <span style={{ color: '#b6bfcc', fontSize: 18 }}>←</span>}
+                  <div style={{ flex: 1 }}>
+                    <div style={{ background: bg, borderRadius: 9, padding: '12px 14px' }}>
+                      <b style={{ fontSize: 18 }}>{fa(v)}</b>
+                      <div style={{ fontSize: 11, color: '#4a5468' }}>{label}</div>
+                    </div>
+                    <div style={{ height: 4, background: '#eef1f6', borderRadius: 4, marginTop: 6, overflow: 'hidden' }}>
+                      <div style={{ width: p + '%', height: '100%', background: 'var(--blue)', borderRadius: 4 }} />
+                    </div>
+                    <div style={{ fontSize: 10, color: '#96a0b1', marginTop: 3 }}>{fa(p)}٪ از ثبت‌نام‌ها</div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
-        </>
-      )}
+        )}
 
-      <div className="section-title">آخرین کاربران ثبت‌نام‌شده</div>
-      <div className="panel wrap-scroll">
-        <table>
-          <thead>
-            <tr><th>نام</th><th>موبایل</th><th>اشتراک</th><th>آزمون</th><th>عضویت</th></tr>
-          </thead>
-          <tbody>
-            {(users || []).slice(0, 6).map((u) => (
-              <tr key={u.id}>
-                <td>{u.name}</td>
-                <td className="ltr">{u.phone}</td>
-                <td>{u.subscription && u.subscription.until > Date.now()
-                  ? <span className="pill ok">فعال تا {faDate(u.subscription.until)}</span>
-                  : <span className="pill off">—</span>}</td>
-                <td>{fa(u.exams)}</td>
-                <td className="muted">{faDate(u.createdAt)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {/* روند ۳۰ روز — ویجت‌های نمودار */}
+        {m && (
+          <div className="wgrid">
+            <div className="widget">
+              <div className="whead"><span className="wi">▲</span> ثبت‌نام‌های روزانه</div>
+              <div className="wbody"><BarChart data={m.signups} color="#2f7cf6" /></div>
+            </div>
+            <div className="widget">
+              <div className="whead"><span className="wi">▲</span> آزمون‌های روزانه</div>
+              <div className="wbody"><BarChart data={m.attempts} color="#1fa564" /></div>
+            </div>
+            <div className="widget">
+              <div className="whead"><span className="wi">▲</span> درآمد روزانه (تومان)</div>
+              <div className="wbody"><BarChart data={m.revenue} color="#7c3aed" /></div>
+            </div>
+          </div>
+        )}
+
+        {/* ویجت گزارش — آخرین کاربران */}
+        <div className="widget" style={{ marginTop: 12 }}>
+          <div className="whead"><span className="wi">▦</span> آخرین کاربران ثبت‌نام‌شده</div>
+          <div className="wrap-scroll" style={{ maxHeight: 320 }}>
+            <table className="grid">
+              <thead>
+                <tr><th className="rn"></th><th>نام</th><th>موبایل</th><th>اشتراک</th><th>آزمون</th><th>عضویت</th></tr>
+              </thead>
+              <tbody>
+                {(users || []).slice(0, 6).map((u, i) => (
+                  <tr key={u.id}>
+                    <td className="rn">{fa(i + 1)}</td>
+                    <td className="pri">{u.name}</td>
+                    <td className="ltr">{u.phone}</td>
+                    <td>{u.subscription && u.subscription.until > Date.now()
+                      ? <span className="pill ok">فعال تا {faDate(u.subscription.until)}</span>
+                      : <span className="pill off">—</span>}</td>
+                    <td>{fa(u.exams)}</td>
+                    <td className="muted">{faDate(u.createdAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </>
   )

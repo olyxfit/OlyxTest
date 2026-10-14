@@ -42,10 +42,15 @@ export function AuthProvider({ children }) {
     setUser(null)
   }
 
+  const updateProfile = async (data) => {
+    const d = await api('/me', { method: 'PATCH', body: data })
+    setUser(d.user)
+  }
+
   const refresh = () => api('/me').then((d) => setUser(d.user)).catch(() => {})
 
   return (
-    <AuthCtx.Provider value={{ user, loading, requestOtp, verifyOtp, login, register, logout, setUser, refresh }}>
+    <AuthCtx.Provider value={{ user, loading, requestOtp, verifyOtp, login, register, logout, setUser, refresh, updateProfile }}>
       {children}
     </AuthCtx.Provider>
   )

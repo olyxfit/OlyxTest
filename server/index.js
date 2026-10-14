@@ -114,6 +114,8 @@ const publicUser = (u) => ({
   id: u.id,
   name: u.name,
   phone: u.phone,
+  gender: u.gender ?? null,
+  createdAt: u.createdAt,
   subscription: u.subscription ?? null,
   points: userPoints(u.id),
   streak: u.streak?.count ?? 0,
@@ -188,6 +190,23 @@ app.post('/api/login', (req, res) => {
 })
 
 app.get('/api/me', auth, (req, res) => res.json({ user: publicUser(req.user) }))
+
+// ویرایش اطلاعات خود کاربر — نام و جنسیت (موبایل = هویت ورود است و تغییرش با ادمین است)
+app.patch('/api/me', auth, (req, res) => {
+  const u = req.user
+  if (req.body?.name != null) {
+    const name = String(req.body.name).trim()
+    if (!name || name.length > 60) return res.status(400).json({ error: 'نام معتبر نیست' })
+    u.name = name
+  }
+  if (req.body?.gender !== undefined) {
+    if (!['men', 'women', null].includes(req.body.gender))
+      return res.status(400).json({ error: 'جنسیت نامعتبر است' })
+    u.gender = req.body.gender
+  }
+  save()
+  res.json({ user: publicUser(u) })
+})
 
 app.post('/api/logout', auth, (req, res) => {
   const token = (req.headers.authorization || '').replace('Bearer ', '')

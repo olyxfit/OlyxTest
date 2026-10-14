@@ -70,6 +70,8 @@ const publicUser = (db, u) => ({
   id: u.id,
   name: u.name,
   phone: u.phone,
+  gender: u.gender ?? null,
+  createdAt: u.createdAt,
   subscription: u.subscription ?? null,
   points: userPoints(db, u.id),
   streak: u.streak?.count ?? 0,
@@ -202,6 +204,19 @@ const handlers = {
   },
 
   'GET /me': (db, _body, user) => ({ user: publicUser(db, user) }),
+
+  'PATCH /me': (db, body, user) => {
+    if (body?.name != null) {
+      const name = String(body.name).trim()
+      if (!name) throw new Error('نام معتبر نیست')
+      user.name = name
+    }
+    if (body?.gender !== undefined) {
+      if (!['men', 'women', null].includes(body.gender)) throw new Error('جنسیت نامعتبر است')
+      user.gender = body.gender
+    }
+    return { user: publicUser(db, user) }
+  },
 
   'GET /version': () => release,
 

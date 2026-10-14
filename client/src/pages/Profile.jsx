@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { User, Crown, ClipboardList, ChevronLeft, LifeBuoy, Lock, Rocket, BadgeCheck, Download, ShieldCheck, X } from 'lucide-react'
+import { User, Crown, ClipboardList, ChevronLeft, LifeBuoy, Lock, Rocket, BadgeCheck, Download, ShieldCheck, X, Pencil, Flame, Sparkles } from 'lucide-react'
 import { api, apiUrl, openExternal } from '../lib/api.js'
 import { useAuth } from '../lib/auth.jsx'
 import { APP_VERSION, compareVersions, UPCOMING } from '../lib/release.js'
@@ -9,11 +9,16 @@ const toFa = (n) => (Number.isFinite(Number(n)) ? Number(n).toLocaleString('fa-I
 const toFaDate = (ts) => new Date(ts).toLocaleDateString('fa-IR', { year: 'numeric', month: 'long', day: 'numeric' })
 
 export default function Profile() {
-  const { user, logout } = useAuth()
+  const { user, logout, updateProfile } = useAuth()
   const nav = useNavigate()
   const [attempts, setAttempts] = useState(null)
   const [release, setRelease] = useState(undefined) // undefined = در حال بارگذاری، null = خطا
   const [updateOpen, setUpdateOpen] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
+  const [editName, setEditName] = useState('')
+  const [editGender, setEditGender] = useState(null) // 'men' | 'women' | null
+  const [editBusy, setEditBusy] = useState(false)
+  const [editError, setEditError] = useState('')
 
   useEffect(() => {
     api('/attempts')
@@ -31,28 +36,79 @@ export default function Profile() {
   // در اپ بومی با هندلر سیستم باز می‌شود تا دانلود در مرورگر انجام شود
   const openUpdate = () => updateUrl && openExternal(updateUrl)
 
+  const openEdit = () => {
+    setEditName(user?.name || '')
+    setEditGender(user?.gender ?? null)
+    setEditError('')
+    setEditOpen(true)
+  }
+
+  const saveProfile = async () => {
+    const name = editName.trim()
+    if (!name || editBusy) return
+    setEditBusy(true)
+    setEditError('')
+    try {
+      await updateProfile({ name, gender: editGender })
+      setEditOpen(false)
+    } catch (e) {
+      setEditError(e.message)
+    } finally {
+      setEditBusy(false)
+    }
+  }
+
   return (
     <div className="px-4 py-6 space-y-6 pb-10">
       {/* identity */}
-      <div className="card p-5 flex items-center gap-4 animate-pop">
-        <span className="size-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-700 grid place-items-center text-xl font-extrabold text-white shadow-lg shadow-indigo-500/25">
-          {user?.name?.[0] || <User className="size-6" />}
-        </span>
-        <div className="flex-1 min-w-0">
-          <div className="font-bold text-lg truncate">{user?.name}</div>
-          <div className="text-xs text-slate-500 mt-0.5" dir="ltr">{user?.phone}</div>
-          {user?.points > 0 && (
-            <div className="text-[11px] font-bold mt-1">
-              <span className="text-amber-600">{toFa(user.points)} امتیاز</span>
-            </div>
+      <section className="card overflow-hidden animate-pop">
+        <div className="relative h-24 overflow-hidden bg-gradient-to-l from-indigo-800 via-indigo-600 to-sky-500">
+          <div className="absolute -top-10 -left-10 size-32 rounded-full bg-white/10" />
+          <div className="absolute -bottom-9 right-1/4 size-20 rounded-full bg-white/10" />
+          <button
+            onClick={openEdit}
+            className="absolute top-3 left-3 flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5 text-[11px] font-bold text-white ring-1 ring-white/30 backdrop-blur transition-colors hover:bg-white/25"
+          >
+            <Pencil className="size-3" /> ویرایش
+          </button>
+          {subActive && (
+            <span className="absolute top-3 right-3 flex items-center gap-1 rounded-full bg-amber-400/20 px-2.5 py-1 text-[11px] font-bold text-amber-200 ring-1 ring-amber-300/50">
+              <Crown className="size-3" /> {sub.title}
+            </span>
           )}
         </div>
-        {subActive && (
-          <span className="flex items-center gap-1 text-[11px] font-bold text-amber-600 bg-amber-500/10 border border-amber-500/30 rounded-full px-2.5 py-1">
-            <Crown className="size-3.5" /> {sub.title}
+        <div className="px-5 pb-5">
+          <span className="relative z-10 -mt-9 grid size-20 place-items-center rounded-3xl bg-gradient-to-br from-indigo-500 to-indigo-700 text-3xl font-extrabold text-white ring-4 ring-white shadow-lg shadow-indigo-500/30">
+            {user?.name?.[0] || <User className="size-8" />}
           </span>
-        )}
-      </div>
+          <div className="mt-3 text-lg font-extrabold leading-7">{user?.name}</div>
+          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500">
+            <span dir="ltr">{user?.phone}</span>
+            {user?.gender && <span>{user.gender === 'men' ? 'آقا' : 'بانو'}</span>}
+            {user?.createdAt && <span>عضو از {toFaDate(user.createdAt)}</span>}
+          </div>
+          <div className="mt-4 grid grid-cols-3 gap-2">
+            <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 py-2.5 text-center">
+              <div className="flex items-center justify-center gap-1 text-sm font-extrabold text-amber-600">
+                <Sparkles className="size-3.5" /> {toFa(user?.points ?? 0)}
+              </div>
+              <div className="mt-0.5 text-[10px] text-slate-500">امتیاز</div>
+            </div>
+            <div className="rounded-xl border border-orange-500/20 bg-orange-500/5 py-2.5 text-center">
+              <div className="flex items-center justify-center gap-1 text-sm font-extrabold text-orange-600">
+                <Flame className="size-3.5" /> {toFa(user?.streak ?? 0)}
+              </div>
+              <div className="mt-0.5 text-[10px] text-slate-500">روز متوالی</div>
+            </div>
+            <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/5 py-2.5 text-center">
+              <div className="flex items-center justify-center gap-1 text-sm font-extrabold text-indigo-600">
+                <ClipboardList className="size-3.5" /> {Array.isArray(attempts) ? toFa(attempts.length) : '—'}
+              </div>
+              <div className="mt-0.5 text-[10px] text-slate-500">آزمون</div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* گزینه‌ها */}
       <section className="space-y-3 animate-pop">
@@ -188,6 +244,71 @@ export default function Profile() {
       >
         خروج از حساب
       </button>
+
+      {/* پاپ‌آپ ویرایش اطلاعات */}
+      {editOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-3 backdrop-blur-sm sm:items-center sm:p-4"
+          onClick={() => !editBusy && setEditOpen(false)}
+        >
+          <div
+            className="w-full max-w-md bg-white border border-[#e6e8f0] rounded-t-3xl sm:rounded-3xl p-5 pb-8 space-y-4 animate-pop shadow-2xl shadow-indigo-900/20"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold flex items-center gap-2">
+                <Pencil className="size-4.5 text-indigo-600" /> ویرایش اطلاعات
+              </h3>
+              <button
+                onClick={() => setEditOpen(false)}
+                className="size-9 rounded-xl bg-[#f1f2f6] border border-[#e6e8f0] grid place-items-center text-slate-500"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+
+            <div className="relative">
+              <User className="absolute right-4 top-1/2 -translate-y-1/2 size-5 text-slate-500" />
+              <input
+                className="input pr-12"
+                placeholder="نام و نام خانوادگی"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                maxLength={60}
+                autoFocus
+              />
+            </div>
+
+            <div>
+              <div className="text-[11px] font-bold text-slate-400 mb-2">جنسیت (اختیاری)</div>
+              <div className="grid grid-cols-2 gap-2">
+                {[{ id: 'men', title: 'آقا' }, { id: 'women', title: 'بانو' }].map((g) => (
+                  <button
+                    key={g.id}
+                    type="button"
+                    onClick={() => setEditGender(editGender === g.id ? null : g.id)}
+                    className={`card p-3 text-sm font-bold transition-all active:scale-[0.98] ${
+                      editGender === g.id ? 'border-indigo-500 bg-indigo-500/10 text-indigo-700' : 'text-slate-600'
+                    }`}
+                  >
+                    {g.title}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {editError && (
+              <div className="text-sm text-rose-600 bg-rose-500/10 border border-rose-500/30 rounded-xl px-4 py-3">
+                {editError}
+              </div>
+            )}
+
+            <button onClick={saveProfile} disabled={editBusy || !editName.trim()} className="btn-primary">
+              {editBusy ? 'در حال ذخیره…' : 'ذخیره تغییرات'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* پاپ‌آپ به‌روزرسانی و نسخه‌های بعدی */}
       {updateOpen && (

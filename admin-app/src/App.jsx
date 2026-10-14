@@ -7,12 +7,13 @@ import Orders from './components/Orders.jsx'
 import Reviews from './components/Reviews.jsx'
 import Announcements from './components/Announcements.jsx'
 
+// هر بخش = یک «شیت» باز در استایل Smartsheet
 const NAV = [
-  { id: 'dash', label: 'نمای کلی', icon: '◧', title: 'آمار کلی سامانه' },
-  { id: 'users', label: 'کاربران', icon: '👥', title: 'مدیریت کاربران و اشتراک‌ها' },
-  { id: 'orders', label: 'سفارش‌ها', icon: '🧾', title: 'سفارش‌ها و پرداخت‌ها' },
-  { id: 'reviews', label: 'نظرها', icon: '⭐', title: 'نظرات کاربران' },
-  { id: 'anns', label: 'اعلان‌ها', icon: '📢', title: 'مدیریت اعلان‌های اپ' },
+  { id: 'dash', label: 'داشبورد', icon: '📊' },
+  { id: 'users', label: 'کاربران', icon: '👥' },
+  { id: 'orders', label: 'سفارش‌ها', icon: '🧾' },
+  { id: 'reviews', label: 'نظرها', icon: '⭐' },
+  { id: 'anns', label: 'اعلان‌ها', icon: '�' },
 ]
 
 export default function App() {
@@ -54,30 +55,31 @@ export default function App() {
   if (checking) return <div className="login-page"><div className="skel" style={{ width: 200, height: 60 }} /></div>
   if (!user) return <Login onLogin={onLogin} />
 
-  const nav = NAV.find((n) => n.id === tab)
   const pageProps = { notify }
 
   return (
-    <div className="layout">
-      <aside className="sidebar">
-        <div className="brand">
-          پنل مدیریت
-          <small>OlyxTest — آزمون مربیگری</small>
-        </div>
+    <div className="shell">
+      <header className="topbar">
+        <span className="tb-logo">▦</span>
+        <span className="tb-title">پنل مدیریت OlyxTest</span>
+        <span className="tb-sub">آزمون مربیگری بدنسازی و فیتنس</span>
+        <span className="tb-spacer" />
+        <span className="tb-user">
+          <span className="tb-avatar">{(user.name || '؟')[0]}</span>
+          <span className="nm">{user.name} • <span className="ltr">{user.phone}</span></span>
+        </span>
+        <button className="tb-logout" onClick={logout}>خروج</button>
+      </header>
+
+      <nav className="tabstrip">
         {NAV.map((n) => (
-          <button key={n.id} className={`nav-item ${tab === n.id ? 'on' : ''}`} onClick={() => setTab(n.id)}>
-            <span>{n.icon}</span> {n.label}
+          <button key={n.id} className={`stab ${tab === n.id ? 'on' : ''}`} onClick={() => setTab(n.id)}>
+            <span className="si">{n.icon}</span>{n.label}
           </button>
         ))}
-        <div className="foot">
-          <div className="who">{user.name} • <span className="ltr">{user.phone}</span></div>
-          <button className="logout" onClick={logout}>خروج از حساب</button>
-        </div>
-      </aside>
+      </nav>
 
-      <main className="main">
-        <div className="page-title">{nav.label}</div>
-        <div className="page-sub">{nav.title}</div>
+      <main className="workspace">
         {tab === 'dash' && <Overview {...pageProps} />}
         {tab === 'users' && <Users {...pageProps} />}
         {tab === 'orders' && <Orders {...pageProps} />}
