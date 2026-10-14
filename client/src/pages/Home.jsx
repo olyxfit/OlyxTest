@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Activity, ArrowRight, ChevronDown, ChevronLeft, ClipboardList, Dumbbell, Flag, Lock, Target, Wand2, X } from 'lucide-react'
+import { Activity, ArrowRight, ChevronLeft, ClipboardList, Dumbbell, Lock, Target, Wand2, X } from 'lucide-react'
 import { api } from '../lib/api.js'
 import { useAuth } from '../lib/auth.jsx'
 import SectionIcon, { sectionGradient } from '../components/SectionIcon.jsx'
@@ -18,7 +18,6 @@ export default function Home() {
   const [mode, setMode] = useState(null) // 'comprehensive' | 'single'
   const [sectionId, setSectionId] = useState(null)
   const [building, setBuilding] = useState(false)
-  const [openGroup, setOpenGroup] = useState(null) // آکاردئون گروه‌های آزمون جامع
   const { user, refresh } = useAuth()
   const nav = useNavigate()
   const subActive = !!user?.subscription && user.subscription.until > Date.now()
@@ -80,18 +79,7 @@ export default function Home() {
   const discTitle = disc === 'bodybuilding' ? 'بدنسازی' : 'فیتنس'
   const genderTitle = gender === 'men' ? 'آقایان' : 'بانوان'
 
-  // آزمون‌های آماده — جامع‌ها به تفکیک رشته×جنسیت، آزمون فدراسیون و تک‌درس‌ها
-  const DISC_TITLES = { bodybuilding: 'بدنسازی', fitness: 'فیتنس' }
-  const G_TITLES = { men: 'آقایان', women: 'بانوان' }
-  const compGroups = ['bodybuilding/men', 'bodybuilding/women', 'fitness/men', 'fitness/women']
-    .map((key) => {
-      const [d, g] = key.split('/')
-      return { key, d, g, list: (exams ?? []).filter((e) => e.type === 'comprehensive' && e.discipline === d && e.gender === g) }
-    })
-    .filter((x) => x.list.length > 0)
-  const fedExams = (exams ?? []).filter((e) => e.type === 'federation')
-  const singleExams = (exams ?? []).filter((e) => e.type === 'single')
-
+  // آزمون‌های آماده در خانه نمایش داده نمی‌شوند — کاربر فقط از آزمون‌ساز می‌سازد
   return (
     <div className="w-full px-4 py-5 sm:px-6 sm:py-7 space-y-4 pb-10">
       {/* greeting */}
@@ -126,104 +114,6 @@ export default function Home() {
 
       {/* کوییز روزانه — رایگان برای همه */}
       <DailyQuiz />
-
-      {/* آزمون‌های آماده */}
-      {exams && (fedExams.length > 0 || compGroups.length > 0 || singleExams.length > 0) && (
-        <section className="space-y-3 animate-pop">
-          <h3 className="font-bold text-sm px-1 flex items-center gap-2">
-            <ClipboardList className="size-4 text-indigo-600" /> آزمون‌های آماده
-          </h3>
-
-          {/* آزمون فدراسیون — سوالات واقعی ادوار گذشته */}
-          {fedExams.map((e) => (
-            <button
-              key={e.id}
-              onClick={() => nav(`/exam/${e.id}`)}
-              className="card w-full p-4 flex items-center gap-3 text-right border-rose-200 bg-gradient-to-l from-rose-500/10 to-transparent hover:border-rose-400 transition-colors"
-            >
-              <span className="size-11 shrink-0 rounded-xl bg-gradient-to-br from-rose-500 to-rose-700 grid place-items-center shadow-lg shadow-rose-500/25">
-                <Flag className="size-5 text-white" />
-              </span>
-              <span className="flex-1 min-w-0">
-                <span className="flex items-center gap-2 text-sm font-bold">
-                  {e.title}
-                  {e.locked && <Lock className="size-3.5 text-amber-500" />}
-                  {e.trial && <span className="text-[9px] font-bold text-emerald-600 bg-emerald-500/10 border border-emerald-500/30 rounded-full px-1.5 py-0.5">رایگان</span>}
-                </span>
-                <span className="block text-[11px] text-slate-500 mt-0.5 truncate">{e.description}</span>
-              </span>
-              <ChevronLeft className="size-4 text-slate-400 shrink-0" />
-            </button>
-          ))}
-
-          {/* آزمون‌های جامع — آکاردئون به تفکیک رشته و جنسیت */}
-          {compGroups.map((grp) => (
-            <div key={grp.key} className="card overflow-hidden">
-              <button
-                onClick={() => setOpenGroup(openGroup === grp.key ? null : grp.key)}
-                className="w-full p-4 flex items-center justify-between text-right"
-              >
-                <span className="text-sm font-bold">آزمون جامع {DISC_TITLES[grp.d]} {G_TITLES[grp.g]}</span>
-                <span className="flex items-center gap-2 text-[11px] text-slate-500">
-                  {toFa(grp.list.length)} سری
-                  <ChevronDown className={`size-4 transition-transform ${openGroup === grp.key ? 'rotate-180' : ''}`} />
-                </span>
-              </button>
-              {openGroup === grp.key && (
-                <div className="divide-y divide-[#e6e8f0] border-t border-[#e6e8f0]">
-                  {grp.list.map((e) => (
-                    <button
-                      key={e.id}
-                      onClick={() => nav(`/exam/${e.id}`)}
-                      className="w-full px-4 py-3 flex items-center justify-between text-right hover:bg-slate-50 transition-colors"
-                    >
-                      <span className="flex items-center gap-2 text-xs font-bold">
-                        سری {toFa(e.series)}
-                        {e.locked && <Lock className="size-3.5 text-amber-500" />}
-                        {e.trial && <span className="text-[9px] font-bold text-emerald-600 bg-emerald-500/10 border border-emerald-500/30 rounded-full px-1.5 py-0.5">رایگان</span>}
-                      </span>
-                      <span className="flex items-center gap-1 text-[10px] text-slate-400">
-                        {toFa(e.totalQuestions)} سوال • {toFa(e.timeMinutes)} دقیقه
-                        <ChevronLeft className="size-3" />
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
-
-          {/* آزمون‌های تک‌درس — رایگان برای همه */}
-          {singleExams.length > 0 && (
-            <div className="card p-4">
-              <div className="text-sm font-bold mb-3 flex items-center justify-between">
-                آزمون‌های تک‌درس
-                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-500/10 border border-emerald-500/30 rounded-full px-2 py-0.5">رایگان</span>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                {singleExams.map((e) => {
-                  const sec = e.sections.find((s) => s.id === e.sectionId)
-                  return (
-                    <button
-                      key={e.id}
-                      onClick={() => nav(`/exam/${e.id}`)}
-                      className="flex items-center gap-2 p-2.5 rounded-xl border border-[#e6e8f0] text-right hover:border-indigo-300 transition-colors"
-                    >
-                      <span className={`size-8 shrink-0 rounded-lg bg-gradient-to-br ${sectionGradient(sec?.color)} grid place-items-center`}>
-                        <SectionIcon icon={sec?.icon} color={sec?.color} className="size-4 text-white" />
-                      </span>
-                      <span className="min-w-0">
-                        <span className="block text-[11px] font-bold truncate">{sec?.title || e.title}</span>
-                        <span className="block text-[9px] text-slate-400">{toFa(e.totalQuestions)} سوال</span>
-                      </span>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-        </section>
-      )}
 
       {/* آمار و سوابق — ویژه مشترکین */}
       {!canSeeStats && (
