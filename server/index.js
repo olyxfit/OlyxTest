@@ -469,36 +469,35 @@ const markExpired = (o) => {
   return true
 }
 
+// a user has at most one open order — same plan resumes it, a different plan cancels the old one.
+// shared by the order endpoint and the Bale deep-link handler (which resurrects dead orders)
+const openOrCreateOrder = (userId, planKey) => {
+  const plan = PLANS[planKey]
+  if (!plan) return null
+  let open = getDb().orders.find((o) => o.userId === userId && o.status === 'pending')
+  if (open && markExpired(open)) open = null
+  if (open && open.plan === planKey) return open
+  if (open) open.status = 'canceled'
+  const order = {
+    id: `o-${crypto.randomUUID().slice(0, 8)}`,
+    userId,
+    plan: planKey,
+    amountRial: plan.priceRial,
+    status: 'pending',
+    createdAt: Date.now(),
+    expiresAt: Date.now() + ORDER_TTL,
+  }
+  getDb().orders.push(order)
+  save()
+  return order
+}
+
 app.post('/api/payment/order', auth, async (req, res) => {
-  const plan = PLANS[req.body?.plan]
-  if (!plan) return res.status(400).json({ error: 'پلن نامعتبر است' })
+  if (!PLANS[req.body?.plan]) return res.status(400).json({ error: 'پلن نامعتبر است' })
   if (!bale.baleEnabled)
     return res.status(503).json({ error: 'درگاه پرداخت بله پیکربندی نشده است', code: 'PAYMENT_NOT_CONFIGURED' })
 
-  // a user has at most one open order — same plan resumes it, a different plan cancels the old one
-  let open = getDb().orders.find((o) => o.userId === req.user.id && o.status === 'pending')
-  if (open && markExpired(open)) open = null
-  let order
-  if (open && open.plan === req.body.plan) {
-    order = open
-  } else {
-    if (open) {
-      open.status = 'canceled'
-      save()
-    }
-    order = {
-      id: `o-${crypto.randomUUID().slice(0, 8)}`,
-      userId: req.user.id,
-      plan: req.body.plan,
-      amountRial: plan.priceRial,
-      status: 'pending',
-      createdAt: Date.now(),
-      expiresAt: Date.now() + ORDER_TTL,
-    }
-    getDb().orders.push(order)
-    save()
-  }
-
+  const order = openOrCreateOrder(req.user.id, req.body.plan)
   try {
     const payUrl = await bale.payUrlFor(order.id)
     res.json({ orderId: order.id, payUrl, status: order.status })
@@ -547,7 +546,7 @@ async function handleBaleUpdate(update) {
       const q = update.pre_checkout_query
       const order = getDb().orders.find((o) => o.id === q.invoice_payload)
       const ok = order && order.status === 'pending' && !markExpired(order) && q.total_amount === order.amountRial
-      await bale.answerPreCheckoutQuery(q.id, !!ok, 'سفارش نامعتبر یا منقضی شده است')
+      await bale.answerPreCheckoutQuery(q.id, !!ok, 'این صورتحساب منقضی شده است؛ لینک پرداخت را دوباره باز کنید')
       return
     }
 
@@ -577,17 +576,25 @@ async function handleBaleUpdate(update) {
     if (typeof msg.text === 'string' && msg.text.startsWith('/start pay_')) {
       const orderId = msg.text.slice('/start pay_'.length).trim().split(/\s/)[0]
       const order = getDb().orders.find((o) => o.id === orderId)
-      if (!order || order.status !== 'pending' || markExpired(order)) {
-        await bale.sendMessage(msg.chat.id, 'سفارش نامعتبر است یا قبلاً پرداخت شده است.')
+      if (order?.status === 'paid') {
+        await bale.sendMessage(msg.chat.id, 'این سفارش قبلاً پرداخت شده است.')
         return
       }
-      const plan = PLANS[order.plan]
+      // سفارش منقضی/لغوشده به‌جای خطا با همان پلن و قیمت فعلی زنده می‌شود تا لینک قدیمی کار کند
+      let target = order
+      if (!order || order.status !== 'pending' || markExpired(order))
+        target = order ? openOrCreateOrder(order.userId, order.plan) : null
+      const plan = target && PLANS[target.plan]
+      if (!plan) {
+        await bale.sendMessage(msg.chat.id, 'سفارش نامعتبر است. از داخل اپلیکیشن دوباره درخواست پرداخت بدهید.')
+        return
+      }
       await bale.sendInvoice({
         chatId: msg.chat.id,
         title: plan.title,
         description: `خرید ${plan.title} اپ آزمون مربیگری`,
-        payload: order.id,
-        amountRial: order.amountRial,
+        payload: target.id,
+        amountRial: target.amountRial,
       })
     }
   } catch (e) {
