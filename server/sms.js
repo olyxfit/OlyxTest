@@ -16,6 +16,9 @@ const SENDER = process.env.KAVENEGAR_SENDER
 const FA_DIGITS = '۰۱۲۳۴۵۶۷۸۹'
 const toFa = (s) => String(s).replace(/\d/g, (d) => FA_DIGITS[Number(d)])
 
+// سقف انتظار پاسخ کاوه‌نگار — بدون آن یک hang در شبکه درخواست OTP را نامحدود معطل می‌کند
+const SMS_TIMEOUT = 10_000
+
 // کد پیامکی با ارقام فارسی ارسال می‌شود (پیش‌فرض) — با متغیر محیطی SMS_FA_CODE=0 لاتین می‌شود
 const faCodeEnabled = () =>
   !['0', 'false', 'no', 'off'].includes(String(process.env.SMS_FA_CODE ?? '').toLowerCase())
@@ -26,7 +29,7 @@ async function kavenegarLookup(phone, code) {
     `?receptor=${encodeURIComponent(phone)}` +
     `&token=${encodeURIComponent(code)}` +
     `&template=${encodeURIComponent(TEMPLATE)}`
-  const res = await fetch(url)
+  const res = await fetch(url, { signal: AbortSignal.timeout(SMS_TIMEOUT) })
   const body = await res.json().catch(() => ({}))
   if (!res.ok || body?.return?.status !== 200) {
     throw new Error(body?.return?.message || `Kavenegar lookup failed: ${res.status}`)
@@ -43,7 +46,7 @@ async function kavenegarSend(phone, code) {
     `?receptor=${encodeURIComponent(phone)}` +
     `&message=${encodeURIComponent(message)}` +
     (SENDER ? `&sender=${encodeURIComponent(SENDER)}` : '')
-  const res = await fetch(url)
+  const res = await fetch(url, { signal: AbortSignal.timeout(SMS_TIMEOUT) })
   const body = await res.json().catch(() => ({}))
   if (!res.ok || body?.return?.status !== 200) {
     throw new Error(body?.return?.message || `Kavenegar send failed: ${res.status}`)

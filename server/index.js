@@ -301,6 +301,7 @@ app.post('/api/logout', auth, (req, res) => {
 const OTP_TTL = 2 * 60 * 1000 // اعتبار کد: ۲ دقیقه
 const OTP_COOLDOWN = 60 * 1000 // فاصله مجاز بین درخواست‌ها: ۶۰ ثانیه
 const OTP_MAX_ATTEMPTS = 5
+const SMS_WAIT = 2500 // حداکثر صبر برای پاسخ سرویس پیامک؛ بیشتر از این در پس‌زمینه ادامه می‌یابد
 const FA_DIGITS = '۰۱۲۳۴۵۶۷۸۹'
 const AR_DIGITS = '٠١٢٣٤٥٦٧٨٩'
 
@@ -341,25 +342,47 @@ app.post('/api/otp/request', async (req, res) => {
   const code = String(crypto.randomInt(0, 10000)).padStart(4, '0')
   const salt = crypto.randomBytes(8).toString('hex')
   db.otps = db.otps.filter((o) => o.phone !== phone)
-  db.otps.push({ phone, code: `${salt}:${hashOtp(code, salt)}`, attempts: 0, createdAt: now })
+  const entry = { phone, code: `${salt}:${hashOtp(code, salt)}`, attempts: 0, createdAt: now }
+  db.otps.push(entry)
   save()
 
-  try {
-    const result = await sendVerificationSms(phone, code)
-    res.json({
-      ok: true,
-      isNewUser: !db.users.some((u) => u.phone === phone),
-      expiresIn: OTP_TTL / 1000,
-      // وقتی کانال پیامک فعال نیست (KAVENEGAR_API_KEY ست نشده)، کد در خود اپ نمایش داده می‌شود
-      // تا ورود ممکن بماند؛ با فعال‌شدن پیامک این فیلد دیگر برنمی‌گردد
-      ...(result.devCode ? { devCode: result.devCode } : {}),
-    })
-  } catch (err) {
-    db.otps = db.otps.filter((o) => o.phone !== phone)
+  const removeOtp = () => {
+    db.otps = db.otps.filter((o) => o !== entry)
     save()
-    console.error('SMS send failed:', err)
-    res.status(502).json({ error: 'ارسال پیامک ناموفق بود. کمی بعد دوباره تلاش کنید' })
   }
+  const payload = () => ({
+    ok: true,
+    isNewUser: !db.users.some((u) => u.phone === phone),
+    expiresIn: OTP_TTL / 1000,
+  })
+
+  // پاسخ سریع: اگر سرویس پیامک کند بود، ارسال در پس‌زمینه ادامه می‌یابد تا
+  // کاربر منتظر API خارجی نماند؛ در شکستِ دیررس کد حذف می‌شود تا تلاش مجدد فوری باشد.
+  const send = sendVerificationSms(phone, code).then(
+    (result) => ({ result }),
+    (err) => ({ err }),
+  )
+  const outcome = await Promise.race([send, new Promise((r) => setTimeout(r, SMS_WAIT))])
+
+  if (!outcome) {
+    res.json(payload())
+    send.then(({ err }) => {
+      if (err) {
+        removeOtp()
+        console.error('SMS send failed (background):', err)
+      }
+    })
+    return
+  }
+  if (outcome.err) {
+    removeOtp()
+    console.error('SMS send failed:', outcome.err)
+    return res.status(502).json({ error: 'ارسال پیامک ناموفق بود. کمی بعد دوباره تلاش کنید' })
+  }
+  // وقتی کانال پیامک فعال نیست (KAVENEGAR_API_KEY ست نشده)، کد در خود اپ نمایش داده می‌شود
+  // تا ورود ممکن بماند؛ با فعال‌شدن پیامک این فیلد دیگر برنمی‌گردد
+  const { devCode } = outcome.result
+  res.json({ ...payload(), ...(devCode ? { devCode } : {}) })
 })
 
 app.post('/api/otp/verify', (req, res) => {

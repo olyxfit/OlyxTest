@@ -32,7 +32,7 @@ let modeCheckedAt = 0
 async function resolveMode() {
   if (mode === 'live' || (mode === 'demo' && Date.now() - modeCheckedAt < DEMO_RECHECK_MS)) return mode
   try {
-    const res = await fetch(`${BASE}/api/health`)
+    const res = await fetch(`${BASE}/api/health`, { signal: AbortSignal.timeout(5000) })
     const data = await res.json().catch(() => null)
     mode = data?.ok ? 'live' : 'demo'
   } catch {
