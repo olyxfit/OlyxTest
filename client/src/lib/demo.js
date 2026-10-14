@@ -70,11 +70,12 @@ const publicUser = (db, u) => ({
   id: u.id,
   name: u.name,
   phone: u.phone,
-  gender: u.gender ?? null,
+  avatar: u.avatar ?? null,
   createdAt: u.createdAt,
   subscription: u.subscription ?? null,
   points: userPoints(db, u.id),
   streak: u.streak?.count ?? 0,
+  exams: db.attempts.filter((a) => a.userId === u.id).length,
   admin: !!u.admin,
   freeExamUsed: freeExamUsed(db, u),
 })
@@ -132,13 +133,24 @@ const questionsForAny = (exam) => questionsForExam(exam)
 // ---------- هندلر اندپوینت‌ها ----------
 const handlers = {
   'POST /register': (db, body) => {
-    const { name, phone, password } = body || {}
-    if (!name?.trim() || !phone?.trim() || !password)
+    const { name, password } = body || {}
+    const phone = normalizePhone(body?.phone)
+    if (!name?.trim() || !phone || !password)
       throw new Error('نام، شماره موبایل و رمز عبور الزامی است')
+    if (!isValidPhone(phone)) throw new Error('شماره موبایل نامعتبر است. مثال: 09123456789')
     if (password.length < 4) throw new Error('رمز عبور باید حداقل ۴ کاراکتر باشد')
-    if (db.users.some((u) => u.phone === phone.trim()))
-      throw new Error('این شماره موبایل قبلاً ثبت‌نام کرده است')
-    const user = { id: uid(), name: name.trim(), phone: phone.trim(), password, createdAt: Date.now() }
+    const existing = db.users.find((u) => u.phone === phone)
+    if (existing) {
+      // شمارهٔ تکراری = ورود (مطابق سرور)؛ حساب بدون رمز فقط با کد پیامکی وارد می‌شود
+      if (!existing.password) throw new Error('این شماره قبلاً ثبت‌نام شده است — با «کد تایید پیامکی» وارد شوید')
+      if (existing.password !== password) throw new Error('این شماره قبلاً ثبت‌نام شده و رمز واردشده درست نیست')
+      const n = name.trim()
+      if (n !== existing.name) existing.name = n
+      const token = newToken()
+      db.sessions.push({ token, userId: existing.id })
+      return { token, user: publicUser(db, existing) }
+    }
+    const user = { id: uid(), name: name.trim(), phone, password, createdAt: Date.now() }
     db.users.push(user)
     const token = newToken()
     db.sessions.push({ token, userId: user.id })
@@ -146,7 +158,7 @@ const handlers = {
   },
 
   'POST /login': (db, body) => {
-    const user = db.users.find((u) => u.phone === body?.phone?.trim())
+    const user = db.users.find((u) => u.phone === normalizePhone(body?.phone))
     if (!user || user.password !== body?.password)
       throw new Error('شماره موبایل یا رمز عبور اشتباه است')
     const token = newToken()
@@ -187,8 +199,8 @@ const handlers = {
     }
     if (otp.code !== code) throw new Error('کد وارد شده اشتباه است')
     let user = db.users.find((u) => u.phone === phone)
+    const name = String(body?.name || '').trim()
     if (!user) {
-      const name = String(body?.name || '').trim()
       if (!name) {
         const err = new Error('نام و نام خانوادگی الزامی است')
         err.code = 'NAME_REQUIRED'
@@ -196,6 +208,8 @@ const handlers = {
       }
       user = { id: uid(), name, phone, createdAt: Date.now() }
       db.users.push(user)
+    } else if (name && name !== user.name) {
+      user.name = name.slice(0, 60)
     }
     db.otps = db.otps.filter((o) => o !== otp)
     const token = newToken()
@@ -208,13 +222,29 @@ const handlers = {
   'PATCH /me': (db, body, user) => {
     if (body?.name != null) {
       const name = String(body.name).trim()
-      if (!name) throw new Error('نام معتبر نیست')
+      if (!name || name.length > 60) throw new Error('نام معتبر نیست')
       user.name = name
     }
-    if (body?.gender !== undefined) {
-      if (!['men', 'women', null].includes(body.gender)) throw new Error('جنسیت نامعتبر است')
-      user.gender = body.gender
+    if (body?.phone != null) {
+      const phone = normalizePhone(body.phone)
+      if (!isValidPhone(phone)) throw new Error('شماره موبایل نامعتبر است. مثال: 09123456789')
+      if (db.users.some((x) => x.id !== user.id && x.phone === phone))
+        throw new Error('این شماره برای کاربر دیگری ثبت شده است')
+      user.phone = phone
     }
+    return { user: publicUser(db, user) }
+  },
+
+  // در دمو عکس به‌صورت data URL مستقیم در کاربر ذخیره می‌شود
+  'PUT /me/avatar': (db, body, user) => {
+    if (!/^data:image\/(jpeg|png|webp);base64,/.test(String(body?.dataUrl || '')))
+      throw new Error('فرمت عکس نامعتبر است')
+    user.avatar = body.dataUrl
+    return { user: publicUser(db, user) }
+  },
+
+  'DELETE /me/avatar': (db, _body, user) => {
+    delete user.avatar
     return { user: publicUser(db, user) }
   },
 
@@ -237,6 +267,9 @@ const handlers = {
     grantSubscription(user, body.plan)
     return { orderId: order.id, payUrl: null, status: order.status }
   },
+
+  // demo orders are paid instantly; no pending order exists
+  'GET /payment/pending': () => ({ order: null }),
 
   'GET /exams': (db, _body, user) =>
     exams.map((exam) => ({ ...shapeExam(exam, questionsForExam(exam)), locked: examLocked(db, exam, user), trial: isTrialExam(db, exam, user) })),
@@ -270,7 +303,7 @@ const handlers = {
       description:
         mode === 'single'
           ? `۵ سوال تصادفی ${sec.title}، در قالب آزمون درجه ۳ ${disc} ${gTitle}`
-          : `۳۰ سوال بلوکی از دروس تخصصی ${disc} (۵ سوال از هر درس)، در قالب آزمون کتبی درجه ۳ فدراسیون`,
+          : `۳۰ سوال بلوکی از دروس تخصصی ${disc} (۵ سوال از هر درس)، در قالب آزمون کتبی تخصصی مربیگری`,
       timeMinutes: mode === 'single' ? 10 : 33,
       ...(() => {
         const gen = generateExamSlots(mode, sectionId, discipline, gender)
@@ -363,7 +396,7 @@ const handlers = {
       rows.set(a.userId, r)
     }
     const list = [...rows.values()]
-      .map((r) => ({ ...r, name: usersById.get(r.userId)?.name || 'کاربر' }))
+      .map((r) => ({ ...r, name: usersById.get(r.userId)?.name || 'کاربر', avatar: usersById.get(r.userId)?.avatar ?? null }))
       .sort((x, y) => y.points - x.points || y.best - x.best || x.userId.localeCompare(y.userId))
     const meIdx = list.findIndex((r) => r.userId === user.id)
     return {
@@ -553,6 +586,23 @@ const dynamic = {
     db.announcements.splice(i, 1)
     return { ok: true }
   },
+  'PUT /feedback/_': (db, body, user, ctx) => {
+    const f = db.feedback.find((x) => x.id === ctx.seg[0] && x.userId === user.id)
+    if (!f) throw new Error('نظر یافت نشد')
+    const text = String(body?.text || '').trim()
+    const rating = Math.min(5, Math.max(1, Number(body?.rating) || 0))
+    if (text.length < 3) throw new Error('متن نظر باید حداقل ۳ حرف باشد')
+    f.text = text.slice(0, 1500)
+    f.rating = rating
+    f.updatedAt = Date.now()
+    return { feedback: f }
+  },
+  'DELETE /feedback/_': (db, _body, user, ctx) => {
+    const i = db.feedback.findIndex((f) => f.id === ctx.seg[0] && f.userId === user.id)
+    if (i === -1) throw new Error('نظر یافت نشد')
+    db.feedback.splice(i, 1)
+    return { ok: true }
+  },
   'DELETE /admin/feedback/_': (db, _body, user, ctx) => {
     adminRequired(user)
     // seg = ['feedback', '<id>']
@@ -643,6 +693,7 @@ export async function demoApi(path, { method = 'GET', body } = {}) {
     : parts[0] === 'exams' && parts.length === 3 && parts[2] === 'questions' ? 'GET /exams/_/questions'
     : parts[0] === 'exams' && parts.length === 3 && parts[2] === 'submit' ? 'POST /exams/_/submit'
     : parts[0] === 'announcements' && parts.length === 2 ? 'DELETE /announcements/_'
+    : parts[0] === 'feedback' && parts.length === 2 ? `${m} /feedback/_`
     : parts[0] === 'payment' && parts[1] === 'order' && parts.length === 3 ? 'GET /payment/order/_'
     : parts[0] === 'admin' && parts[1] === 'feedback' && parts.length === 3 ? 'DELETE /admin/feedback/_'
     : parts[0] === 'admin' && parts[1] === 'users' && parts.length === 4 && parts[3] === 'subscription' ? `${m} /admin/users/_/subscription`

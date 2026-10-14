@@ -124,7 +124,7 @@ export default function Result() {
         <div className="flex items-center justify-center gap-3 text-xs font-extrabold animate-pop">
           {pointsEarned != null && (
             <span className="flex items-center gap-1.5 text-amber-600 bg-amber-500/10 border border-amber-500/30 rounded-full px-3.5 py-1.5">
-              <Sparkles className="size-3.5" /> +{toFa(pointsEarned)} امتیاز
+              <Sparkles className="size-3.5" /> +{toFa(pointsEarned)} <span dir="ltr">XP</span>
             </span>
           )}
           {streak > 0 && (

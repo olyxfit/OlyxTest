@@ -1,23 +1,21 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
-  ArrowRight, Bell, ChevronDown, LifeBuoy, Mail, Megaphone, MessageSquare, Rocket, Send, Star,
+  ArrowRight, ChevronDown, LifeBuoy, Mail, Megaphone, MessageSquare, Pencil, Send, Star, Trash2, X,
 } from 'lucide-react'
 import { api } from '../lib/api.js'
-import { UPCOMING } from '../lib/release.js'
 
 const faDate = (ts) =>
   new Date(ts).toLocaleDateString('fa-IR', { day: 'numeric', month: 'long', year: 'numeric' })
 
-// ─── راه‌های ارتباطی پشتیبانی — این مقادیر را با اطلاعات واقعی جایگزین کنید ───
 const SUPPORT_CHANNELS = [
-  { icon: MessageSquare, label: 'تلگرام', value: 'آیدی عددی: 8561413993', href: 'tg://openmessage?user_id=8561413993' },
-  { icon: Mail, label: 'ایمیل', value: 'support@example.com', href: 'mailto:support@example.com' },
+  { icon: MessageSquare, label: 'تلگرام', value: '@olyxfit_support', href: 'https://t.me/olyxfit_support' },
+  { icon: Mail, label: 'ایمیل', value: 'olyx.fit@gmail.com', href: 'mailto:olyx.fit@gmail.com' },
   { icon: LifeBuoy, label: 'پاسخگویی', value: 'همه‌روزه ۹ تا ۲۱', href: null },
 ]
 
 const FAQ = [
-  { q: 'نمره‌ی آزمون چطور محاسبه می‌شود؟', a: 'درصد پاسخ‌های درست از کل سوالات. هر پاسخ درست ۱۰ امتیاز هم به حساب شما اضافه می‌کند.' },
+  { q: 'نمره‌ی آزمون چطور محاسبه می‌شود؟', a: 'درصد پاسخ‌های درست از کل سوالات. هر پاسخ درست ۱۰ XP هم به حساب شما اضافه می‌کند.' },
   { q: 'استریک روزانه چیست؟', a: 'اگر هر روز حداقل یک آزمون کامل کنید، شمارنده‌ی روزهای متوالی شما یکی افزایش می‌یابد. یک روز جا بماند، از اول شروع می‌شود.' },
   { q: 'اشتراک چه مزیتی دارد؟', a: 'کوییز روزانه، آزمون‌های تک‌درس و اولین آزمون جامع رایگان است؛ اشتراک دسترسی نامحدود به همه آزمون‌های جامع و آزمون‌ساز می‌دهد.' },
 ]
@@ -50,22 +48,23 @@ export default function Panel() {
     ? searchParams.get('tab')
     : 'news'
   const [tab, setTab] = useState(initialTab)
-  const [news, setNews] = useState(null)
   const [mine, setMine] = useState(null)
+  const [news, setNews] = useState(null)
 
   // فرم نظر
   const [rating, setRating] = useState(0)
   const [text, setText] = useState('')
+  const [editing, setEditing] = useState(null)
   const [msg, setMsg] = useState('')
   const [busy, setBusy] = useState(false)
   const [openFaq, setOpenFaq] = useState(-1)
 
-  const loadNews = () => api('/announcements').then((d) => setNews(d.list)).catch(() => setNews([]))
   const loadMine = () => api('/feedback/mine').then((d) => setMine(d.list)).catch(() => setMine([]))
+  const loadNews = () => api('/announcements').then((d) => setNews(d.list)).catch(() => setNews([]))
 
   useEffect(() => {
-    if (tab === 'news') loadNews()
     if (tab === 'feedback') loadMine()
+    if (tab === 'news') loadNews()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab])
 
@@ -74,15 +73,47 @@ export default function Panel() {
     setMsg('')
     setBusy(true)
     try {
-      await api('/feedback', { method: 'POST', body: { rating, text } })
+      if (editing) {
+        await api(`/feedback/${editing.id}`, { method: 'PUT', body: { rating, text } })
+        setMsg('نظر شما ویرایش شد')
+      } else {
+        await api('/feedback', { method: 'POST', body: { rating, text } })
+        setMsg('نظر شما ثبت شد — ممنون از همراهیتان!')
+      }
       setText('')
       setRating(0)
-      setMsg('نظر شما ثبت شد — ممنون از همراهیتان!')
+      setEditing(null)
       loadMine()
     } catch (err) {
       setMsg(err.message)
     } finally {
       setBusy(false)
+    }
+  }
+
+  const startEdit = (f) => {
+    setEditing(f)
+    setRating(f.rating)
+    setText(f.text)
+    setMsg('')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const cancelEdit = () => {
+    setEditing(null)
+    setText('')
+    setRating(0)
+    setMsg('')
+  }
+
+  const removeFeedback = async (f) => {
+    if (!window.confirm('این نظر حذف شود؟')) return
+    try {
+      await api(`/feedback/${f.id}`, { method: 'DELETE' })
+      if (editing?.id === f.id) cancelEdit()
+      loadMine()
+    } catch (err) {
+      setMsg(err.message)
     }
   }
 
@@ -101,11 +132,11 @@ export default function Panel() {
       {/* title */}
       <div className="flex items-center gap-3 animate-pop">
         <span className="size-11 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-800 grid place-items-center shadow-lg shadow-indigo-500/25">
-          <Bell className="size-5 text-white" />
+          <LifeBuoy className="size-5 text-white" />
         </span>
         <div>
-          <h2 className="text-xl font-extrabold">اطلاع‌رسانی و پشتیبانی</h2>
-          <p className="on-photo text-xs mt-0.5">اخبار نسخه‌های بعدی، نظرات و راه‌های ارتباطی</p>
+          <h2 className="text-xl font-extrabold">نظرات و پشتیبانی</h2>
+          <p className="on-photo text-xs mt-0.5">نظر شما درباره‌ی اپ و راه‌های ارتباطی با ما</p>
         </div>
       </div>
 
@@ -129,38 +160,22 @@ export default function Panel() {
 
       {/* ─── اعلان‌ها ─── */}
       {tab === 'news' && (
-        <div className="space-y-3">
-          {/* نسخه‌ی بعدی چه می‌آید؟ */}
-          <div className="card p-4 border-indigo-200 bg-gradient-to-l from-indigo-500/10 to-transparent animate-pop">
-            <div className="font-bold text-sm flex items-center gap-2 text-indigo-700">
-              <Rocket className="size-4" /> نسخه‌ی بعدی چه می‌آید؟
-            </div>
-            <ul className="mt-2.5 space-y-1.5">
-              {UPCOMING.map((u) => (
-                <li key={u} className="text-xs text-slate-600 flex items-center gap-2">
-                  <span className="size-1.5 rounded-full bg-indigo-500 shrink-0" />
-                  {u}
-                </li>
-              ))}
-            </ul>
-          </div>
-
+        <div className="space-y-2.5">
           {!news ? (
-            <div className="space-y-2.5">{[1, 2].map((i) => <div key={i} className="skeleton h-20" />)}</div>
+            <div className="card p-4 space-y-3"><div className="skeleton h-10" /><div className="skeleton h-10" /></div>
           ) : news.length === 0 ? (
-            <div className="card p-8 text-center text-sm text-slate-500 animate-pop">
-              <Megaphone className="size-8 mx-auto text-slate-300 mb-3" />
-              هنوز اعلانی منتشر نشده — به‌زودی خبرهای نسخه‌ی بعدی اینجا می‌رسد.
-            </div>
+            <p className="card p-6 text-xs text-slate-500 text-center animate-pop">فعلاً اعلانی منتشر نشده است.</p>
           ) : (
             news.map((a, i) => (
-              <article key={a.id} className="card p-4 animate-pop" style={{ animationDelay: `${i * 50}ms` }}>
-                <div className="flex items-start justify-between gap-3">
-                  <h3 className="font-bold text-sm">{a.title}</h3>
+              <div key={a.id} className="card p-4 animate-pop" style={{ animationDelay: `${Math.min(i * 50, 300)}ms` }}>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-bold flex items-center gap-1.5">
+                    <Megaphone className="size-4 text-indigo-600" /> {a.title}
+                  </span>
                   <span className="text-[10px] text-slate-400 shrink-0">{faDate(a.createdAt)}</span>
                 </div>
-                <p className="text-sm text-slate-500 leading-7 mt-2 whitespace-pre-wrap">{a.body}</p>
-              </article>
+                <p className="text-sm text-slate-600 leading-7 mt-2 whitespace-pre-line">{a.body}</p>
+              </div>
             ))
           )}
         </div>
@@ -170,6 +185,14 @@ export default function Panel() {
       {tab === 'feedback' && (
         <div className="space-y-3">
           <form onSubmit={sendFeedback} className="card p-4 space-y-4 animate-pop">
+            {editing && (
+              <div className="flex items-center justify-between rounded-xl bg-indigo-50 border border-indigo-100 px-3.5 py-2.5 text-xs font-bold text-indigo-700">
+                در حال ویرایش نظر قبلی
+                <button type="button" onClick={cancelEdit} className="flex items-center gap-1 text-indigo-400 hover:text-indigo-600">
+                  <X className="size-3.5" /> انصراف
+                </button>
+              </div>
+            )}
             <div>
               <div className="font-bold text-sm">به اپ چه امتیازی می‌دهید؟</div>
               <div className="mt-2.5 flex justify-center">
@@ -186,7 +209,7 @@ export default function Panel() {
             />
             {msg && (
               <div className={`text-xs font-bold rounded-xl px-3.5 py-2.5 ${
-                msg.includes('ممنون')
+                msg.includes('ممنون') || msg.includes('ویرایش شد')
                   ? 'text-emerald-700 bg-emerald-50 border border-emerald-200'
                   : 'text-rose-600 bg-rose-50 border border-rose-200'
               }`}>
@@ -195,7 +218,7 @@ export default function Panel() {
             )}
             <button className="btn-primary flex items-center justify-center gap-2" disabled={busy || text.trim().length < 3}>
               <Send className="size-4" />
-              ارسال نظر
+              {editing ? 'ویرایش نظر' : 'ارسال نظر'}
             </button>
           </form>
 
@@ -209,6 +232,20 @@ export default function Panel() {
                     <span className="text-[10px] text-slate-400">{faDate(f.createdAt)}</span>
                   </div>
                   <p className="text-sm text-slate-600 leading-7 mt-2">{f.text}</p>
+                  <div className="flex gap-1.5 mt-3 pt-2.5 border-t border-slate-100">
+                    <button
+                      onClick={() => startEdit(f)}
+                      className="flex items-center gap-1 text-[11px] font-bold text-indigo-600 hover:text-indigo-800 px-2.5 py-1.5 rounded-lg hover:bg-indigo-50 transition-colors"
+                    >
+                      <Pencil className="size-3.5" /> ویرایش
+                    </button>
+                    <button
+                      onClick={() => removeFeedback(f)}
+                      className="flex items-center gap-1 text-[11px] font-bold text-rose-500 hover:text-rose-700 px-2.5 py-1.5 rounded-lg hover:bg-rose-50 transition-colors"
+                    >
+                      <Trash2 className="size-3.5" /> حذف
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

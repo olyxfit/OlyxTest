@@ -39,32 +39,53 @@ export default function Subscription() {
     if (pollRef.current) clearInterval(pollRef.current)
     pollRef.current = null
   }
-  useEffect(() => stopPolling, [])
+
+  const startPolling = (orderId) => {
+    stopPolling()
+    const startedAt = Date.now()
+    pollRef.current = setInterval(async () => {
+      try {
+        const s = await api(`/payment/order/${orderId}`)
+        if (s.status === 'paid') {
+          stopPolling()
+          setPending(null)
+          setUser(s.user)
+        } else if (s.status === 'expired' || s.status === 'canceled') {
+          stopPolling()
+          setPending((p) => (p ? { ...p, failed: s.status } : p))
+        } else if (Date.now() - startedAt > POLL_TIMEOUT) {
+          stopPolling()
+          setPending((p) => (p ? { ...p, timedOut: true } : p))
+        }
+      } catch { /* در تلاش بعدی دوباره چک می‌شود */ }
+    }, POLL_MS)
+  }
+
+  // resume an open order + polling if the user left mid-payment
+  useEffect(() => {
+    api('/payment/pending')
+      .then((d) => {
+        if (d.order) {
+          setPending({ orderId: d.order.orderId, payUrl: d.order.payUrl })
+          startPolling(d.order.orderId)
+        }
+      })
+      .catch(() => {})
+    return stopPolling
+  }, [])
 
   const subscribe = async (plan) => {
     if (subscribing || pending) return
     setSubscribing(plan.id)
     try {
       const d = await api('/payment/order', { method: 'POST', body: { plan: plan.id } })
+      if (d.status === 'paid') {
+        setUser((await api(`/payment/order/${d.orderId}`)).user)
+        return
+      }
       if (d.payUrl) openPayUrl(d.payUrl)
-      const startedAt = Date.now()
       setPending({ orderId: d.orderId, payUrl: d.payUrl })
-      pollRef.current = setInterval(async () => {
-        try {
-          const s = await api(`/payment/order/${d.orderId}`)
-          if (s.status === 'paid') {
-            stopPolling()
-            setPending(null)
-            setUser(s.user)
-          } else if (s.status === 'expired' || s.status === 'cancelled') {
-            stopPolling()
-            setPending((p) => (p ? { ...p, failed: true } : p))
-          } else if (Date.now() - startedAt > POLL_TIMEOUT) {
-            stopPolling()
-            setPending((p) => (p ? { ...p, timedOut: true } : p))
-          }
-        } catch { /* در تلاش بعدی دوباره چک می‌شود */ }
-      }, POLL_MS)
+      startPolling(d.orderId)
     } catch (e) {
       alert(e.message)
     } finally {
@@ -105,14 +126,22 @@ export default function Subscription() {
             </span>
             <div className="flex-1">
               <div className="font-bold text-sm">
-                {pending.failed ? 'سفارش منقضی شد' : pending.timedOut ? 'پرداخت هنوز ثبت نشده' : 'در انتظار پرداخت در بله'}
+                {pending.failed === 'canceled'
+                  ? 'سفارش لغو شد'
+                  : pending.failed
+                    ? 'سفارش منقضی شد'
+                    : pending.timedOut
+                      ? 'پرداخت هنوز ثبت نشده'
+                      : 'در انتظار پرداخت در بله'}
               </div>
               <div className="text-xs text-slate-500 mt-0.5">
-                {pending.failed
-                  ? 'مهلت پرداخت این سفارش تمام شده — دوباره برای خرید اقدام کنید.'
-                  : pending.timedOut
-                    ? 'اگر پرداخت را انجام داده‌اید کمی صبر کنید؛ در غیر این صورت انصراف بدهید و دوباره تلاش کنید.'
-                    : 'صورتحساب در بازوی بله برایتان ارسال می‌شود؛ پس از پرداخت، اشتراک خودکار فعال می‌شود.'}
+                {pending.failed === 'canceled'
+                  ? 'این سفارش لغو شده است — برای خرید دوباره تلاش کنید.'
+                  : pending.failed
+                    ? 'مهلت پرداخت این سفارش تمام شده — دوباره برای خرید اقدام کنید.'
+                    : pending.timedOut
+                      ? 'اگر پرداخت را انجام داده‌اید کمی صبر کنید؛ در غیر این صورت انصراف بدهید و دوباره تلاش کنید.'
+                      : 'صورتحساب در بازوی بله برایتان ارسال می‌شود؛ پس از پرداخت، اشتراک خودکار فعال می‌شود.'}
               </div>
             </div>
           </div>
@@ -185,7 +214,7 @@ export default function Subscription() {
 
       {/* پشتیبانی */}
       <a
-        href="tg://openmessage?user_id=8561413993"
+        href="https://t.me/olyxfit_support"
         className="card p-4 flex items-center gap-3 hover:border-indigo-300 transition-colors animate-pop"
         style={{ animationDelay: '180ms' }}
       >

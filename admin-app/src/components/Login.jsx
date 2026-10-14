@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Icon from '../icons.jsx'
 
 export default function Login({ onLogin }) {
   const [phone, setPhone] = useState('')
@@ -22,7 +23,7 @@ export default function Login({ onLogin }) {
   return (
     <div className="login-page">
       <form className="login-card" onSubmit={submit}>
-        <div className="logo">🛡️</div>
+        <div className="logo"><Icon n="shield" s={24} /></div>
         <h1>پنل مدیریت</h1>
         <p>آزمون مربیگری بدنسازی و فیتنس — ورود با حساب مدیر</p>
         <input

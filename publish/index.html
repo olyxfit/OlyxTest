@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>OlyxTest | آمادگی آزمون مربیگری بدنسازی و فیتنس</title>
-  <meta name="description" content="بانک سوالات واقعی، آزمون جامع و تک‌درس در قالب فدراسیون، پاسخ تشریحی و پیگیری پیشرفت — برای آزمون مربیگری درجه ۳ بدنسازی و فیتنس." />
+  <meta name="description" content="بانک سوالات واقعی، آزمون جامع و تک‌درس در قالب آزمون کتبی تخصصی، پاسخ تشریحی و پیگیری پیشرفت — برای آزمون مربیگری درجه ۳ بدنسازی و فیتنس." />
   <meta name="theme-color" content="#ffffff" />
   <link rel="icon" type="image/svg+xml" href="olyx-logo.svg" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" />
@@ -75,15 +75,21 @@
     .btn-sm { padding: 8px 18px; font-size: .82rem; border-radius: 11px; }
 
     /* ---------- hero ---------- */
-    .hero { padding: clamp(48px, 8vw, 90px) 0 clamp(56px, 8vw, 90px); position: relative; }
-    .hero::before {
-      content: ""; position: absolute; inset: 0; pointer-events: none;
-      background:
-        radial-gradient(600px 320px at 85% 10%, rgba(0,200,253,.10), transparent 65%),
-        radial-gradient(700px 380px at 10% 90%, rgba(79,70,229,.08), transparent 65%);
+    .hero { padding: clamp(48px, 8vw, 90px) 0 clamp(56px, 8vw, 90px); position: relative; overflow: hidden; }
+    .hero-video {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      object-fit: cover; z-index: 0; pointer-events: none;
     }
+    .hero::before {
+      content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 1;
+      background:
+        radial-gradient(600px 320px at 85% 10%, rgba(0,200,253,.12), transparent 65%),
+        radial-gradient(700px 380px at 10% 90%, rgba(79,70,229,.10), transparent 65%),
+        linear-gradient(180deg, rgba(255,255,255,.82), rgba(255,255,255,.74) 45%, rgba(255,255,255,.92));
+    }
+    @media (prefers-reduced-motion: reduce) { .hero-video { display: none; } }
     .hero-grid {
-      position: relative;
+      position: relative; z-index: 2;
       display: grid; grid-template-columns: 1.1fr .9fr; gap: 48px; align-items: center;
     }
     @media (max-width: 860px) { .hero-grid { grid-template-columns: 1fr; text-align: center; } }
@@ -92,12 +98,18 @@
       background: linear-gradient(120deg, var(--cyan), var(--emerald-light));
       -webkit-background-clip: text; background-clip: text; color: transparent;
     }
-    .hero p.lead { color: var(--muted); font-size: clamp(.95rem, 1.8vw, 1.1rem); margin-top: 18px; max-width: 520px; }
+    .hero p.lead {
+      color: #334155; font-weight: 600;
+      font-size: clamp(.95rem, 1.8vw, 1.1rem); margin-top: 18px; max-width: 520px;
+      text-shadow: 0 1px 14px rgba(255,255,255,.95), 0 0 4px rgba(255,255,255,.9);
+    }
     @media (max-width: 860px) { .hero p.lead { margin-inline: auto; } }
     .hero-ctas { display: flex; gap: 14px; margin-top: 32px; flex-wrap: wrap; }
     @media (max-width: 860px) { .hero-ctas { justify-content: center; } }
     .hero-meta { display: flex; gap: 22px; margin-top: 28px; color: var(--muted); font-size: .8rem; flex-wrap: wrap; }
     @media (max-width: 860px) { .hero-meta { justify-content: center; } }
+    .hero-meta span { display: inline-flex; align-items: center; gap: 7px; }
+    .hero-meta svg { color: var(--blue); }
     .hero-meta b { color: var(--text); }
     .hero-badge {
       display: inline-flex; align-items: center; gap: 8px;
@@ -107,13 +119,13 @@
     }
     .hero-badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--emerald); }
     .live-count {
-      display: inline-flex; align-items: center; gap: 10px; margin-top: 24px;
+      display: inline-flex; align-items: center; gap: 12px; margin-top: 28px;
       background: #fff; border: 1px solid var(--border); border-radius: 999px;
-      padding: 9px 20px; box-shadow: 0 12px 30px -14px rgba(15,23,42,.2);
-      font-size: .85rem; font-weight: 700; color: var(--muted);
+      padding: 14px 26px; box-shadow: 0 12px 30px -14px rgba(15,23,42,.2);
+      font-size: 1.02rem; font-weight: 700; color: var(--muted);
     }
-    .live-count b { font-size: 1.15rem; font-weight: 900; color: var(--blue); min-width: 2.2ch; text-align: center; }
-    .live-count .lc-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--emerald); animation: lc-pulse 1.6s ease-in-out infinite; }
+    .live-count b { font-size: 1.55rem; font-weight: 900; color: var(--blue); min-width: 2.2ch; text-align: center; }
+    .live-count .lc-dot { width: 11px; height: 11px; border-radius: 50%; background: var(--emerald); animation: lc-pulse 1.6s ease-in-out infinite; }
     @keyframes lc-pulse { 50% { opacity: .3; transform: scale(.75); } }
 
     /* ---------- phone mock ---------- */
@@ -130,32 +142,16 @@
       background: linear-gradient(180deg, #f8fafc, #eef2f7);
       display: flex; flex-direction: column;
     }
-    .scr-head {
-      padding: 14px 16px; background: rgba(255,255,255,.8);
-      display: flex; align-items: center; gap: 8px; font-size: .68rem; font-weight: 800;
-      border-bottom: 1px solid var(--border);
+    .scr-body { position: relative; flex: 1; overflow: hidden; }
+    /* اسلایدهای دمو — شات‌های واقعی اپ که هر ۲٫۵ ثانیه می‌چرخند */
+    .scr-slide {
+      position: absolute; inset: 0;
+      opacity: 0; transform: translateY(10px) scale(.985);
+      transition: opacity .45s ease, transform .45s ease;
+      pointer-events: none;
     }
-    .scr-head img { width: 20px; }
-    .scr-body { padding: 14px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
-    .scr-chip {
-      align-self: flex-start; font-size: .55rem; font-weight: 700; color: var(--blue);
-      background: rgba(37,99,235,.09); border: 1px solid rgba(37,99,235,.2);
-      border-radius: 8px; padding: 3px 9px;
-    }
-    .scr-q { font-size: .66rem; font-weight: 700; line-height: 1.9; color: var(--text); }
-    .scr-opt {
-      font-size: .6rem; color: var(--muted); background: #fff;
-      border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px;
-      display: flex; align-items: center; gap: 7px;
-    }
-    .scr-opt i { width: 14px; height: 14px; border-radius: 5px; background: #f1f5f9; display: grid; place-items: center; font-style: normal; font-size: .5rem; font-weight: 800; color: var(--muted); }
-    .scr-opt.sel { border-color: var(--indigo); background: rgba(79,70,229,.07); color: var(--indigo); }
-    .scr-opt.sel i { background: var(--indigo); color: #fff; }
-    .scr-bar { height: 5px; border-radius: 99px; background: #e2e8f0; overflow: hidden; }
-    .scr-bar b { display: block; height: 100%; width: 42%; background: linear-gradient(90deg, var(--indigo), var(--cyan)); border-radius: 99px; }
-    .scr-nav { display: flex; gap: 6px; margin-top: auto; padding: 10px 14px 16px; }
-    .scr-nav span { flex: 1; height: 30px; border-radius: 10px; background: #fff; border: 1px solid var(--border); }
-    .scr-nav span.on { background: var(--indigo); border-color: var(--indigo); }
+    .scr-slide.on { opacity: 1; transform: none; }
+    .scr-slide img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .float-chip {
       position: absolute; z-index: 2; background: #fff; border: 1px solid var(--border);
       border-radius: 14px; padding: 9px 14px; font-size: .72rem; font-weight: 800;
@@ -166,6 +162,32 @@
     .float-chip.b { bottom: 14%; left: 2%; animation: floaty 5.5s ease-in-out .8s infinite; }
     @keyframes floaty { 50% { transform: translateY(-8px); } }
     @media (max-width: 860px) { .float-chip.a { right: -2%; } .float-chip.b { left: -4%; } }
+    /* متن چیپ با هر اسلاید دمو عوض می‌شود */
+    .float-chip .fc-txt { display: inline-block; }
+    .float-chip.fc-swap .fc-txt { animation: fc-in .45s ease; }
+    @keyframes fc-in { from { opacity: 0; transform: translateY(7px); } }
+
+    /* ---------- quick access (الهام از کارت‌های انرجیم) ---------- */
+    .cats {
+      display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px;
+      padding-block: clamp(30px, 5vw, 46px);
+    }
+    @media (max-width: 860px) { .cats { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 540px) { .cats { grid-template-columns: repeat(2, 1fr); } }
+    .cat {
+      background: #fff; border: 1px solid var(--border); border-radius: 18px;
+      padding: 22px 12px 17px; text-align: center; display: block;
+      transition: transform .2s, box-shadow .2s, border-color .2s;
+    }
+    .cat:hover { transform: translateY(-4px); box-shadow: 0 20px 44px -18px rgba(15,23,42,.18); border-color: rgba(37,99,235,.3); }
+    .cat .ic {
+      width: 52px; height: 52px; margin: 0 auto 13px; border-radius: 17px;
+      display: grid; place-items: center; color: #fff;
+      box-shadow: 0 8px 20px -8px rgba(15,23,42,.35);
+    }
+    .cat b { font-size: .84rem; font-weight: 800; display: block; }
+    .cat span { font-size: .67rem; color: var(--muted); display: block; margin-top: 4px; }
+    .svc-cta { margin-top: 26px; }
 
     /* ---------- stats ---------- */
     .stats { border-block: 1px solid var(--border); background: var(--bg-alt); }
@@ -211,7 +233,7 @@
       background: linear-gradient(90deg, var(--cyan), var(--indigo), var(--emerald-light));
     }
     .mock-title { font-size: .78rem; font-weight: 800; color: var(--muted); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
-    .mock-title i { width: 26px; height: 26px; border-radius: 8px; background: rgba(79,70,229,.1); display: grid; place-items: center; font-style: normal; }
+    .mock-title i { width: 26px; height: 26px; border-radius: 8px; background: rgba(79,70,229,.1); display: grid; place-items: center; font-style: normal; color: var(--indigo); }
     .mock-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px dashed var(--border); font-size: .8rem; }
     .mock-row:last-child { border-bottom: 0; }
     .mock-row .rank { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; font-size: .7rem; font-weight: 800; background: #f1f5f9; color: var(--muted); }
@@ -272,6 +294,8 @@
     }
     .plan .dur { font-size: .95rem; font-weight: 800; color: var(--muted); }
     .plan .price { font-size: 1.7rem; font-weight: 900; color: var(--text); margin-top: 8px; }
+    /* قیمت قدیم خط‌خورده کنار قیمت جدید — مثل کارت‌های انرجیم */
+    .plan .price s { font-size: .95rem; font-weight: 700; color: var(--muted); text-decoration-color: rgba(225,29,72,.55); margin-left: 8px; }
     .plan .price small { font-size: .78rem; font-weight: 700; color: var(--muted); }
     .plan .per { font-size: .72rem; color: var(--muted); margin-top: 2px; }
     .plan ul { margin: 20px 0 24px; text-align: right; display: flex; flex-direction: column; gap: 9px; }
@@ -297,6 +321,15 @@
     .faq-item[open] summary::after { transform: rotate(-135deg); }
     .faq-item .a { padding: 0 22px 20px; color: var(--muted); font-size: .88rem; }
 
+    /* ---------- contact ---------- */
+    .contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 720px; margin-inline: auto; }
+    @media (max-width: 640px) { .contact-grid { grid-template-columns: 1fr; } }
+    .contact-val {
+      display: inline-block; font-weight: 800; font-size: .9rem; color: var(--blue);
+      background: rgba(37,99,235,.08); border: 1px solid rgba(37,99,235,.18);
+      border-radius: 999px; padding: 6px 18px;
+    }
+
     /* ---------- final cta ---------- */
     .final {
       background: linear-gradient(135deg, #0f172a, #1e293b);
@@ -317,6 +350,30 @@
     .foot .links { display: flex; gap: 22px; font-size: .82rem; color: var(--muted); }
     .foot .links a:hover { color: var(--blue); }
     .foot small { color: var(--muted); font-size: .74rem; display: block; margin-top: 6px; }
+
+    /* ---------- scroll motion ---------- */
+    /* چسبندگی ملایم سکشن‌ها هنگام اسکرول + فاصله از هدر چسبان */
+    html { scroll-padding-top: 76px; }
+    @media (prefers-reduced-motion: no-preference) {
+      html { scroll-snap-type: y proximity; }
+      .hero, .stats, .section, .service, footer { scroll-snap-align: start; }
+    }
+    /* reveal — با JS کلاس .in می‌گیرد؛ translate/scale جدا از transform‌اند تا hoverها نشکنند */
+    .reveal {
+      opacity: 0; translate: 0 36px;
+      transition: opacity .7s ease var(--rd, 0s),
+                  translate .7s cubic-bezier(.22,1,.36,1) var(--rd, 0s),
+                  scale .7s cubic-bezier(.22,1,.36,1) var(--rd, 0s);
+    }
+    .reveal.side { translate: var(--rx, 44px) 0; }
+    .reveal.zoom { translate: 0 0; scale: .9; }
+    .reveal.in { opacity: 1; translate: 0 0; scale: 1; }
+    /* نوارهای پیشرفت موک‌ها هم با ورود به دید پر می‌شوند */
+    .service .mock .trk i { transition: width 1s cubic-bezier(.22,1,.36,1) .4s; }
+    .service .mock.reveal:not(.in) .trk i { width: 0 !important; }
+    @media (prefers-reduced-motion: reduce) {
+      .reveal { opacity: 1; translate: 0 0; scale: 1; transition: none; }
+    }
   </style>
 </head>
 <body>
@@ -333,6 +390,7 @@
         <a href="#download">دانلود</a>
         <a href="#pricing">تعرفه</a>
         <a href="#faq">سوالات متداول</a>
+        <a href="#contact">تماس با ما</a>
       </nav>
       <div class="nav-cta">
         <a class="btn btn-primary btn-sm" href="/">ورود به وب‌اپ</a>
@@ -342,12 +400,15 @@
 
   <!-- ══════════ هیرو ══════════ -->
   <section class="hero">
+    <video class="hero-video" autoplay muted loop playsinline poster="run-poster.jpg" aria-hidden="true">
+      <source src="run.mp4" type="video/mp4" />
+    </video>
     <div class="container hero-grid">
       <div>
-        <span class="hero-badge">آمادگی آزمون مربیگری درجه ۳ فدراسیون</span>
+        <span class="hero-badge">آمادگی آزمون کتبی تخصصی مربیگری بدنسازی و فیتنس</span>
         <h1>برای آزمون مربیگری<br /><span class="grad">بدنسازی و فیتنس</span> آماده شو</h1>
         <p class="lead">
-          بانک سوالات واقعی ادوار گذشته، آزمون‌های جامع در قالب برگهٔ رسمی فدراسیون،
+          بانک سوالات واقعی ادوار گذشته، آزمون‌های جامع در قالب آزمون کتبی تخصصی،
           پاسخ تشریحی هر سوال و تحلیل نقاط ضعف — همه در یک اپ سبک و سریع.
         </p>
         <div class="hero-ctas">
@@ -361,10 +422,10 @@
           </a>
         </div>
         <div class="hero-meta">
-          <span>📦 حجم <b>~۹ مگابایت</b></span>
-          <span>🤖 اندروید <b>۷+</b></span>
-          <span>🌐 نسخهٔ وب <b>بدون نصب</b></span>
-          <span>🎁 اولین آزمون <b>رایگان</b></span>
+          <span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 9.4 7.55 4.24"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.3 7 12 12l8.7-5"/><path d="M12 22V12"/></svg>حجم <b>~۹ مگابایت</b></span>
+          <span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M12 4v4"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M9 13.5h.01"/><path d="M15 13.5h.01"/></svg>اندروید <b>۶+</b></span>
+          <span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>نسخهٔ وب <b>بدون نصب</b></span>
+          <span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5"/></svg>اولین آزمون <b>رایگان</b></span>
         </div>
         <div class="live-count" id="live-count" hidden>
           <span class="lc-dot"></span>
@@ -375,33 +436,58 @@
 
       <!-- ماکاپ گوشی -->
       <div class="phone-wrap">
-        <div class="float-chip a">🔥 استریک ۷ روزه</div>
-        <div class="float-chip b">🕘 مرور آزمون‌های قبلی</div>
+        <div class="float-chip a"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg><span class="fc-txt">کوییز روزانه رایگان</span></div>
+        <div class="float-chip b"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg><span class="fc-txt">نقاط ضعف همیشه جلوی چشم</span></div>
         <div class="phone">
           <div class="screen">
-            <div class="scr-head"><img src="olyx-logo.svg" alt="" /> OlyxTest</div>
+            <!-- شات‌های واقعی اپ — خانه، شروع آزمون، سوال، نتیجه، پاسخ تشریحی، آمار، پروفایل -->
             <div class="scr-body">
-              <div class="scr-bar"><b></b></div>
-              <span class="scr-chip">آناتومی وزنه‌تمرینی</span>
-              <p class="scr-q">کدام عضله در بخش جلویی بازو قرار دارد و وظیفهٔ اصلی آن خم کردن مفصل آرنج است؟</p>
-              <div class="scr-opt"><i>الف</i> سه‌سر بازویی</div>
-              <div class="scr-opt sel"><i>✓</i> دوسر بازویی</div>
-              <div class="scr-opt"><i>ج</i> دلتوئید</div>
-              <div class="scr-opt"><i>د</i> ذوزنقه‌ای</div>
+              <div class="scr-slide on"><img src="shots/home.webp" alt="صفحهٔ خانه اپ" /></div>
+              <div class="scr-slide"><img src="shots/exam.webp" alt="شروع آزمون جامع" /></div>
+              <div class="scr-slide"><img src="shots/quiz.webp" alt="صفحهٔ سوال آزمون" /></div>
+              <div class="scr-slide"><img src="shots/result.webp" alt="نتیجهٔ آزمون" /></div>
+              <div class="scr-slide"><img src="shots/review.webp" alt="مرور سوال با پاسخ تشریحی" /></div>
+              <div class="scr-slide"><img src="shots/stats.webp" alt="آمار عملکرد" /></div>
+              <div class="scr-slide"><img src="shots/profile.webp" alt="پروفایل کاربر" /></div>
             </div>
-            <div class="scr-nav"><span class="on"></span><span></span><span></span><span></span></div>
           </div>
         </div>
       </div>
     </div>
   </section>
 
+  <!-- ══════════ دسترسی سریع ══════════ -->
+  <div class="container">
+    <div class="cats">
+      <a class="cat" href="/">
+        <span class="ic" style="background:linear-gradient(135deg,#818cf8,#4f46e5)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg></span>
+        <b>ساخت آزمون</b><span>قالب رسمی درجه ۳</span>
+      </a>
+      <a class="cat" href="/">
+        <span class="ic" style="background:linear-gradient(135deg,#fbbf24,#d97706)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.9 4.9 1.4 1.4"/><path d="m17.7 17.7 1.4 1.4"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.3 17.7-1.4 1.4"/><path d="m19.1 4.9-1.4 1.4"/></svg></span>
+        <b>کوییز روزانه</b><span>رایگان برای همه</span>
+      </a>
+      <a class="cat" href="/">
+        <span class="ic" style="background:linear-gradient(135deg,#22d3ee,#0284c7)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M7 15l4-4 3 3 5-6"/></svg></span>
+        <b>آمار پیشرفت</b><span>روند و نقاط ضعف</span>
+      </a>
+      <a class="cat" href="#pricing">
+        <span class="ic" style="background:linear-gradient(135deg,#c4b5fd,#7c3aed)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r="1"/></svg></span>
+        <b>تعرفه‌ها</b><span>شروع رایگان</span>
+      </a>
+      <a class="cat" href="azmoon-app.apk" download>
+        <span class="ic" style="background:linear-gradient(135deg,#34d399,#059669)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span>
+        <b>دانلود APK</b><span>اپ اندروید</span>
+      </a>
+    </div>
+  </div>
+
   <!-- ══════════ آمار ══════════ -->
   <section class="stats">
     <div class="container grid">
-      <div class="stat"><b dir="ltr">+۱۹۵۰</b><span>سوال با پاسخ تشریحی</span></div>
+      <div class="stat"><b dir="ltr">+۱۹۶۰</b><span>سوال با پاسخ تشریحی</span></div>
       <div class="stat"><b>۶</b><span>درس تخصصی در هر آزمون جامع</span></div>
-      <div class="stat"><b>۳۰</b><span>سوال در قالب برگهٔ فدراسیون</span></div>
+      <div class="stat"><b>درجه ۳</b><span>هم‌قالب آزمون کتبی تخصصی</span></div>
       <div class="stat"><b>روزانه</b><span>کوییز رایگان برای همه</span></div>
     </div>
   </section>
@@ -415,106 +501,142 @@
         <p>از تمرین روزانه تا شبیه‌سازی کامل جلسهٔ آزمون — مسیر آماده‌سازی‌ات را ما طراحی کرده‌ایم.</p>
       </div>
 
-      <!-- سرویس ۱: آزمون جامع -->
+      <!-- سرویس ۱: آزمون‌ساز (صفحهٔ خانه → مودال ساخت آزمون) -->
       <div class="service">
         <div class="svc-text">
           <span class="tag">شبیه‌سازی واقعی</span>
-          <h3>آزمون جامع در قالب فدراسیون</h3>
+          <h3>آزمون‌ساز در قالب آزمون کتبی تخصصی</h3>
           <p>
-            آزمون‌های ۳۰ سوالی دقیقاً با چیدمان برگهٔ رسمی درجه ۳ فدراسیون —
-            ۵ سوال از هر درس تخصصی، به ترتیب بلوکی درس‌ها و با تایمر واقعی.
+            در سه مرحله آزمونت را می‌سازی — رشته (بدنسازی یا فیتنس)، جنسیت و نوع آزمون.
+            آزمون جامع با همان سرفصل‌های تخصصی آزمون کتبی درجه ۳ و چینش بلوکی سوالات برگزار می‌شود.
           </p>
           <ul class="svc-list">
-            <li><span><b>۶ درس تخصصی</b>تغذیه، آناتومی، فیزیولوژی، سیستم‌های تمرین، طراحی تمرین و درس جنسیتی (داوری آقایان / فنی تخصصی بانوان)</span></li>
-            <li><span><b>رشته و جنسیت دلخواه</b>بدنسازی یا فیتنس، آقایان یا بانوان</span></li>
-            <li><span><b>ده‌ها سری آزمون</b>با سوالات غیرتکراری در هر سری</span></li>
-            <li><span><b>برگهٔ واقعی فدراسیون</b>یک سری آزمون با سوالات رونویسی‌شده از ادوار گذشته</span></li>
+            <li><span><b>سرفصل‌های تخصصی بدنسازی و فیتنس</b>تغذیه و مکمل‌ها، آناتومی، فیزیولوژی، سیستم‌های تمرین و طراحی تمرین</span></li>
+            <li><span><b>درس ششم متناسب با آزمونت</b>داوری برای آقایان و فنی تخصصی برای بانوان — درست مثل آزمون رسمی</span></li>
+            <li><span><b>تایمر و نشانه‌گذاری</b>مثل جلسهٔ واقعی — سوال مشکوک را فلگ کن و بعد برگرد</span></li>
+            <li><span><b>اولین آزمون جامع رایگان</b>بدون اشتراک یک آزمون کامل بده و نمره و پاسخ صحیح را ببین</span></li>
+            <li><span><b>ادوار گذشته</b>سوالات رونویسی‌شده از آزمون‌های واقعی هم در بانک هست</span></li>
           </ul>
+          <a class="btn btn-primary svc-cta" href="/">شروع آزمون</a>
         </div>
         <div class="mock">
-          <div class="mock-title"><i>📋</i> آزمون جامع بدنسازی آقایان — سری ۱</div>
-          <div class="mock-bar"><div class="lbl"><span>تغذیه و مکمل‌ها</span><span>۵/۵</span></div><div class="trk"><i style="width:100%;background:linear-gradient(90deg,#34d399,#059669)"></i></div></div>
-          <div class="mock-bar"><div class="lbl"><span>آناتومی</span><span>۴/۵</span></div><div class="trk"><i style="width:80%;background:linear-gradient(90deg,#fda4af,#e11d48)"></i></div></div>
-          <div class="mock-bar"><div class="lbl"><span>فیزیولوژی</span><span>۳/۵</span></div><div class="trk"><i style="width:60%;background:linear-gradient(90deg,#7dd3fc,#0284c7)"></i></div></div>
-          <div class="mock-bar"><div class="lbl"><span>سیستم‌های تمرین</span><span>۵/۵</span></div><div class="trk"><i style="width:100%;background:linear-gradient(90deg,#c4b5fd,#7c3aed)"></i></div></div>
-          <div class="mock-bar"><div class="lbl"><span>طراحی تمرین</span><span>۴/۵</span></div><div class="trk"><i style="width:80%;background:linear-gradient(90deg,#fcd34d,#d97706)"></i></div></div>
-          <div class="mock-bar"><div class="lbl"><span>داوری</span><span>۵/۵</span></div><div class="trk"><i style="width:100%;background:linear-gradient(90deg,#94a3b8,#475569)"></i></div></div>
+          <div class="mock-title"><i><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="M9 13h6"/><path d="M9 17h6"/></svg></i> آزمون کتبی تخصصی بدنسازی آقایان</div>
+          <div class="mock-bar"><div class="lbl"><span>تغذیه و مکمل‌ها</span><span>۱۰۰٪</span></div><div class="trk"><i style="width:100%;background:linear-gradient(90deg,#34d399,#059669)"></i></div></div>
+          <div class="mock-bar"><div class="lbl"><span>آناتومی</span><span>۸۰٪</span></div><div class="trk"><i style="width:80%;background:linear-gradient(90deg,#fda4af,#e11d48)"></i></div></div>
+          <div class="mock-bar"><div class="lbl"><span>فیزیولوژی</span><span>۶۰٪</span></div><div class="trk"><i style="width:60%;background:linear-gradient(90deg,#7dd3fc,#0284c7)"></i></div></div>
+          <div class="mock-bar"><div class="lbl"><span>سیستم‌های تمرین</span><span>۱۰۰٪</span></div><div class="trk"><i style="width:100%;background:linear-gradient(90deg,#c4b5fd,#7c3aed)"></i></div></div>
+          <div class="mock-bar"><div class="lbl"><span>طراحی تمرین</span><span>۸۰٪</span></div><div class="trk"><i style="width:80%;background:linear-gradient(90deg,#fcd34d,#d97706)"></i></div></div>
+          <div class="mock-bar"><div class="lbl"><span>داوری</span><span>۱۰۰٪</span></div><div class="trk"><i style="width:100%;background:linear-gradient(90deg,#94a3b8,#475569)"></i></div></div>
         </div>
       </div>
 
-      <!-- سرویس ۲: تمرین روزانه -->
+      <!-- سرویس ۲: کوییز روزانه و تک‌درس (کارت DailyQuiz صفحهٔ خانه) -->
       <div class="service flip">
         <div class="svc-text">
-          <span class="tag">تمرین هر روز</span>
-          <h3>کوییز روزانه، تک‌درس و آزمون‌ساز</h3>
+          <span class="tag" style="color:#b45309;background:rgba(217,119,6,.09);border-color:rgba(217,119,6,.22)">تمرین هر روز</span>
+          <h3>کوییز روزانه و آزمون تک‌درس — همیشه رایگان</h3>
           <p>
-            هر روز ۱۰ سوال ترکیبی رایگان برای گرم نگه داشتنت؛ و هر وقت خواستی
-            روی یک درس خاص عمیق شو یا آزمون دلخواهت را بساز.
+            هر روز تا ۱۰ سوال ترکیبی از دروس تخصصی برای گرم نگه داشتنت؛ پیشرفت
+            همان لحظه ذخیره می‌شود و هر وقت برگردی از همان سوال ادامه می‌دهی.
           </p>
           <ul class="svc-list">
-            <li><span><b>کوییز روزانه رایگان</b>۱۰ سوال جدید هر روز برای همهٔ کاربران</span></li>
-            <li><span><b>آزمون تک‌درس</b>تمرین متمرکز روی یک سرفصل انتخابی</span></li>
-            <li><span><b>استریک و امتیاز</b>هر پاسخ درست ۱۰ امتیاز؛ روزهای متوالی‌ات را بشمار</span></li>
+            <li><span><b>یک‌بار در روز، برای همه</b>سوال‌های امروز تا فردا ثابت می‌مانند و نتیجه همان‌جا مرور می‌شود</span></li>
+            <li><span><b>آزمون تک‌درس</b>برای هر سرفصل یک آزمون کوتاه و متمرکز آماده — برای همهٔ کاربران آزاد</span></li>
+            <li><span><b>پاسخ تشریحی — ویژه مشترکین</b>بعد از پایان کوییز، دلیل درست بودن هر پاسخ را هم می‌خوانی</span></li>
           </ul>
+          <a class="btn btn-primary svc-cta" href="/">کوییز امروز</a>
         </div>
         <div class="mock">
-          <div class="mock-title"><i>☀️</i> کوییز امروز</div>
+          <div class="mock-title"><i><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.9 4.9 1.4 1.4"/><path d="m17.7 17.7 1.4 1.4"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.3 17.7-1.4 1.4"/><path d="m19.1 4.9-1.4 1.4"/></svg></i> کوییز روزانه — چهارشنبه ۲۳ مهر</div>
           <div class="mock-cards">
-            <div class="mock-card"><b>سوال امروز</b><span class="n">۱۰</span><span>سوال ترکیبی از دروس</span></div>
-            <div class="mock-card"><b>استریک</b><span class="n">🔥 ۷</span><span>روز متوالی فعال</span></div>
-            <div class="mock-card"><b>امتیاز امروز</b><span class="n" dir="ltr">+۸۰</span><span>۸ پاسخ درست</span></div>
+            <div class="mock-card"><b>سوال‌های امروز</b><span class="n">۱۰</span><span>از دروس تخصصی بدنسازی و فیتنس</span></div>
+            <div class="mock-card"><b>وضعیت</b><span class="n" style="color:#059669;display:flex;align-items:center;gap:4px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>انجام شد</span><span>۷ از ۱۰ درست — برای مرور بزن</span></div>
+            <div class="mock-card"><b>ادامه از همان‌جا</b><span class="n">۴/۱۰</span><span>پیشرفت ذخیره می‌شود</span></div>
             <div class="mock-card"><b>کوییز بعدی</b><span class="n">فردا</span><span>هر روز تازه می‌شود</span></div>
           </div>
         </div>
       </div>
 
-      <!-- سرویس ۳: پاسخ تشریحی و تحلیل -->
+      <!-- سرویس ۳: صفحهٔ نتیجه — حلقهٔ نمره، فیلتر بررسی، پاسخ تشریحی -->
       <div class="service">
         <div class="svc-text">
-          <span class="tag">یادگیری عمیق</span>
-          <h3>پاسخ تشریحی و تحلیل نقاط ضعف</h3>
+          <span class="tag" style="color:#be123c;background:rgba(225,29,72,.08);border-color:rgba(225,29,72,.2)">یادگیری عمیق</span>
+          <h3>نتیجهٔ آنی و پاسخ تشریحی هر سوال</h3>
           <p>
-            بعد از هر آزمون، پاسخ درست و توضیح کامل هر سوال را می‌بینی و
-            عملکردت به تفکیک درس تحلیل می‌شود تا دقیقاً بدانی کجا ضعیفی.
+            همین که آزمون تمام می‌شود حلقهٔ نمره و عملکردت به تفکیک هر درس را می‌بینی؛
+            بعد پاسخنامه را سوال‌به‌سوال با پاسخ صحیح و توضیح کامل مرور می‌کنی.
           </p>
           <ul class="svc-list">
-            <li><span><b>پاسخ تشریحی هر سوال</b>نه فقط گزینهٔ صحیح — دلیلش را هم یاد بگیر</span></li>
-            <li><span><b>فیلتر بررسی</b>فقط غلط‌ها، فقط نشانه‌گذاری‌شده‌ها یا همه</span></li>
-            <li><span><b>گزارش پیشرفت</b>روند نمره‌ها و درصد هر درس در صفحهٔ آمار</span></li>
+            <li><span><b>عملکرد به تفکیک درس</b>درصد هر درس در همان آزمون — ضعف‌ها خودشان را نشان می‌دهند</span></li>
+            <li><span><b>فیلتر بررسی</b>همه، فقط درست، فقط غلط، بی‌پاسخ یا نشانه‌گذاری‌شده</span></li>
+            <li><span><b>پاسخ تشریحی — ویژه مشترکین</b>نه فقط گزینهٔ صحیح، دلیل درست بودنش را هم یاد بگیر</span></li>
           </ul>
+          <a class="btn btn-primary svc-cta" href="#pricing">مشاهده تعرفه‌ها</a>
         </div>
         <div class="mock">
-          <div class="mock-title"><i>💡</i> بررسی پاسخ‌ها</div>
-          <span class="q-chip">درست (۲۱)</span><span class="q-chip">غلط (۶)</span><span class="q-chip">نشانه‌گذاری (۳)</span>
+          <div class="mock-title"><i><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5A5.9 5.9 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg></i> بررسی پاسخ‌ها — آزمون کتبی بدنسازی</div>
+          <span class="q-chip">همه</span><span class="q-chip" style="color:#059669">درست</span><span class="q-chip" style="color:#e11d48">غلط</span><span class="q-chip">بی‌پاسخ</span><span class="q-chip" style="color:#4f46e5">نشانه‌گذاری</span>
           <div class="expl">
-            <b>💡 پاسخ تشریحی</b>
+            <b><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M15 14c.2-1 .7-1.7 1.5-2.5A5.9 5.9 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg> پاسخ تشریحی</b>
             عضلهٔ دوسر بازویی (Biceps Brachii) در قسمت جلویی بازو قرار دارد و در
             حرکاتی مثل خم کردن آرنج (curl) نقش اصلی را ایفا می‌کند.
           </div>
         </div>
       </div>
 
-      <!-- سرویس ۴: مرور آزمون‌های قبلی -->
+      <!-- سرویس ۴: صفحهٔ آمار — شاخص‌ها، روند نمرات، آزمون‌های من -->
       <div class="service flip">
         <div class="svc-text">
-          <span class="tag">مرور و جبران</span>
-          <h3>مرور آزمون‌های قبلی</h3>
+          <span class="tag" style="color:#0284c7;background:rgba(2,132,199,.09);border-color:rgba(2,132,199,.22)">تحلیل بلندمدت</span>
+          <h3>آمار پیشرفت و مرور آزمون‌های قبلی</h3>
           <p>
-            همهٔ آزمون‌هایی که داده‌ای در پروفایلت می‌ماند؛ هر وقت خواستی برگرد،
-            پاسخ‌هایت را با جواب درست و تشریحی ببین و از اشتباه‌هایت یاد بگیر.
+            در تب «آمار» تصویر کامل مسیرت را می‌بینی: شاخص‌های کلی، نمودار روند
+            نمرات و تاریخچهٔ همهٔ آزمون‌ها — هر آزمون باز می‌شود و پاسخنامه‌اش همیشه در دسترس است.
           </p>
           <ul class="svc-list">
-            <li><span><b>تاریخچهٔ کامل آزمون‌ها</b>نمره، تعداد درست و تاریخ هر آزمون در «آزمون‌های من»</span></li>
-            <li><span><b>بررسی پاسخ‌ها در هر زمان</b>همان صفحهٔ نتیجه با پاسخ صحیح و تشریحی — حتی ماه‌ها بعد</span></li>
-            <li><span><b>فیلتر روی غلط‌ها</b>فقط سوالاتی که غلط زده یا نشانه‌گذاری کرده‌ای را مرور کن</span></li>
+            <li><span><b>روند نمرات</b>نمودار ۱۲ آزمون آخر با رنگ‌بندی سبز (۷۰٪+)، کهربایی و قرمز</span></li>
+            <li><span><b>آزمون‌های من</b>هر آزمون با تفکیک درسش باز می‌شود و «مرور پاسخنامه» همان صفحهٔ نتیجه را برمی‌گرداند</span></li>
+            <li><span><b>نقاط ضعف روی خانه</b>کم‌نمره‌ترین درس‌هایت روی صفحهٔ خانه دیده می‌شوند — یک تپ تا آزمون تک‌درس همان درس</span></li>
           </ul>
+          <a class="btn btn-primary svc-cta" href="/">مشاهده آمار من</a>
         </div>
         <div class="mock">
-          <div class="mock-title"><i>🕘</i> آزمون‌های من</div>
-          <div class="mock-row"><span class="rank" style="background:rgba(5,150,105,.15);color:#059669">۸۷٪</span><div class="who"><b>آزمون جامع بدنسازی — سری ۳</b><span>۲۶/۳۰ درست • دیروز</span></div><span class="pts">مرور</span></div>
-          <div class="mock-row"><span class="rank" style="background:rgba(217,119,6,.15);color:#d97706">۶۳٪</span><div class="who"><b>آزمون جامع فیتنس — سری ۱</b><span>۱۹/۳۰ درست • ۳ روز پیش</span></div><span class="pts">مرور</span></div>
-          <div class="mock-row"><span class="rank" style="background:rgba(225,29,72,.12);color:#e11d48">۴۰٪</span><div class="who"><b>تک‌درس: سیستم‌های تمرین</b><span>۲/۵ درست • هفتهٔ پیش</span></div><span class="pts">مرور</span></div>
-          <div class="mock-row"><span class="rank" style="background:rgba(5,150,105,.15);color:#059669">۹۳٪</span><div class="who"><b>آزمون فدراسیون — ادوار گذشته</b><span>۲۸/۳۰ درست • هفتهٔ پیش</span></div><span class="pts">مرور</span></div>
+          <div class="mock-title"><i><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M7 15l4-4 3 3 5-6"/></svg></i> آمار عملکرد — آزمون‌های من</div>
+          <div class="mock-cards" style="grid-template-columns:repeat(4,1fr);margin-bottom:14px">
+            <div class="mock-card" style="padding:10px"><span>آزمون</span><span class="n">۱۴</span></div>
+            <div class="mock-card" style="padding:10px"><span>درست</span><span class="n" style="color:#059669">۲۳۸</span></div>
+            <div class="mock-card" style="padding:10px"><span>میانگین</span><span class="n" style="color:#0284c7">۷۰٪</span></div>
+            <div class="mock-card" style="padding:10px"><span>بهترین</span><span class="n" style="color:#d97706">۹۰٪</span></div>
+          </div>
+          <div class="mock-row"><span class="rank" style="background:rgba(5,150,105,.15);color:#059669">۸۷٪</span><div class="who"><b>آزمون کتبی تخصصی بدنسازی آقایان</b><span>تفکیک درس + مرور پاسخنامه</span></div></div>
+          <div class="mock-row"><span class="rank" style="background:rgba(217,119,6,.15);color:#d97706">۶۳٪</span><div class="who"><b>آزمون کتبی تخصصی فیتنس بانوان</b><span>تفکیک درس + مرور پاسخنامه</span></div></div>
+          <div class="mock-row"><span class="rank" style="background:rgba(225,29,72,.12);color:#e11d48">۴۰٪</span><div class="who"><b>آزمون سیستم‌های تمرین</b><span>تک‌درس</span></div></div>
+        </div>
+      </div>
+
+      <!-- سرویس ۵: پروفایل و اطلاع‌رسانی -->
+      <div class="service">
+        <div class="svc-text">
+          <span class="tag" style="color:#059669;background:rgba(5,150,105,.09);border-color:rgba(5,150,105,.22)">حساب کاربری</span>
+          <h3>پروفایل، سطح XP و اطلاع‌رسانی</h3>
+          <p>
+            در پروفایل، سطح و XP‌ات، رتبه، بهترین نمره و روزهای متوالی‌ات را می‌بینی.
+            پنل اطلاع‌رسانی هم خبرهای نسخهٔ بعدی، نظردهی با ستاره و پشتیبانی تلگرام را یک‌جا دارد.
+          </p>
+          <ul class="svc-list">
+            <li><span><b>سطح‌بندی XP</b>هر پاسخ درست ۱۰ امتیاز — از «تازه‌وارد» تا «افسانه» سطح‌بندی می‌روی</span></li>
+            <li><span><b>نسخهٔ بعدی چه می‌آید؟</b>فیچرهای در راه — مثل تمرین مجدد غلط‌ها — قبل از انتشار اعلام می‌شوند</span></li>
+            <li><span><b>نظر و پشتیبانی</b>به اپ ستاره بده، نظرت را بنویس یا مستقیم در تلگرام پیام بده</span></li>
+          </ul>
+          <a class="btn btn-primary svc-cta" href="/">ورود به وب‌اپ</a>
+        </div>
+        <div class="mock">
+          <div class="mock-title"><i><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></i> پروفایل — سطح و اشتراک</div>
+          <div class="mock-bar"><div class="lbl"><span>۱٬۲۴۰ XP — سطح ۳</span><span>تا سطح بعد ۲۶۰</span></div><div class="trk"><i style="width:64%;background:linear-gradient(90deg,#38bdf8,#4f46e5)"></i></div></div>
+          <div class="mock-cards" style="margin-top:12px">
+            <div class="mock-card"><b>اشتراک</b><span>خرید یا تمدید — پرداخت با بله</span></div>
+            <div class="mock-card"><b>به‌روزرسانی</b><span>نسخهٔ جدید؟ از داخل اپ خبر می‌گیری</span></div>
+          </div>
         </div>
       </div>
     </div>
@@ -569,17 +691,17 @@
           <div class="price">۱۹۹ <small>هزار تومان</small></div>
           <div class="per">برای امتحان کردن مسیر</div>
           <ul>
-            <li>همهٔ سری‌های آزمون جامع</li>
-            <li>آزمون‌ساز نامحدود</li>
-            <li>آمار، نقاط ضعف و سوابق</li>
-            <li>مرور کامل آزمون‌های قبلی</li>
+            <li>آزمون‌ساز نامحدود — جامع و تک‌درس</li>
+            <li>پاسخ تشریحی همهٔ سوالات</li>
+            <li>آمار، نقاط ضعف و روند نمرات</li>
+            <li>مرور کامل پاسخنامهٔ آزمون‌های قبلی</li>
           </ul>
           <a class="btn btn-ghost" href="azmoon-app.apk" download style="width:100%">شروع کن</a>
         </div>
         <div class="plan featured">
           <span class="save">پیشنهادی — ۱۶٪ تخفیف</span>
           <div class="dur">سه‌ماهه</div>
-          <div class="price">۴۹۹ <small>هزار تومان</small></div>
+          <div class="price"><s>۵۹۷</s> ۴۹۹ <small>هزار تومان</small></div>
           <div class="per">پوشش کامل یک دورهٔ آمادگی</div>
           <ul>
             <li>همهٔ امکانات پلن ماهانه</li>
@@ -589,8 +711,9 @@
           <a class="btn btn-emerald" href="azmoon-app.apk" download style="width:100%">شروع کن</a>
         </div>
         <div class="plan">
+          <span class="save" style="background:linear-gradient(135deg,#7dd3fc,#0284c7)">۳۷٪ تخفیف</span>
           <div class="dur">سالانه</div>
-          <div class="price">۱٫۴۹۹ <small>میلیون تومان</small></div>
+          <div class="price"><s>۲٫۳۸۸</s> ۱٫۴۹۹ <small>میلیون تومان</small></div>
           <div class="per">۳۷٪ تخفیف نسبت به ماهانه</div>
           <ul>
             <li>همهٔ امکانات پلن ماهانه</li>
@@ -622,20 +745,49 @@
         </details>
         <details class="faq-item">
           <summary>چقدر از اپ رایگان است؟</summary>
-          <div class="a">کوییز روزانه و اولین آزمون جامعت همیشه رایگان است. برای دسترسی نامحدود به آزمون‌های جامع و تک‌درس و آزمون‌ساز، اشتراک لازم است.</div>
+          <div class="a">کوییز روزانه و همهٔ آزمون‌های تک‌درس همیشه رایگان‌اند و اولین آزمون جامعت هم رایگان است — نمره و پاسخ صحیح را کامل می‌بینی. پاسخ تشریحی، آمار پیشرفت و آزمون‌ساز نامحدود برای مشترکین است.</div>
         </details>
         <details class="faq-item">
           <summary>با اشتراک دقیقاً چه چیزهایی باز می‌شود؟</summary>
-          <div class="a">همهٔ سری‌های آزمون جامع (بدنسازی و فیتنس، آقایان و بانوان)، آزمون‌ساز نامحدود، صفحهٔ آمار و تحلیل نقاط ضعف، و سوابق کامل آزمون‌ها با امکان مرور پاسخ‌ها در هر زمان.</div>
+          <div class="a">آزمون‌ساز نامحدود (جامع و تک‌درس برای بدنسازی و فیتنس، آقایان و بانوان)، پاسخ تشریحی همهٔ سوالات، صفحهٔ آمار با روند نمرات و نقاط ضعف، و سوابق کامل آزمون‌ها با مرور پاسخنامه در هر زمان.</div>
         </details>
         <details class="faq-item">
           <summary>اپ را چطور به‌روز کنم؟</summary>
           <div class="a">از پروفایل اپ، بخش «به‌روزرسانی» وقتی نسخهٔ جدید بیاید اطلاع می‌دهد و با یک تپ به همین صفحه می‌آیی تا APK جدید را بگیری — نصب روی نسخهٔ قبلی انجام می‌شود و اطلاعاتت می‌ماند.</div>
         </details>
         <details class="faq-item">
-          <summary>آزمون‌ها دقیقاً شبیه آزمون فدراسیون هستند؟</summary>
-          <div class="a">بله — آزمون جامع ۳۰ سوال با ۵ سوال از هر درس تخصصی و چینش بلوکی، دقیقاً در قالب آزمون کتبی درجه ۳ فدراسیون طراحی شده و بخشی از سوالات از ادوار واقعی گذشته است.</div>
+          <summary>آزمون‌ها دقیقاً شبیه آزمون کتبی مربیگری هستند؟</summary>
+          <div class="a">بله — آزمون جامع با همان سرفصل‌های تخصصی و چینش بلوکی، دقیقاً در قالب آزمون کتبی تخصصی مربیگری طراحی شده و بخشی از سوالات از ادوار واقعی گذشته است.</div>
         </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ تماس با ما ══════════ -->
+  <section class="section" id="contact">
+    <div class="container">
+      <div class="sec-head">
+        <div class="kicker">تماس با ما</div>
+        <h2>با ما در تماس باش</h2>
+        <p>برای پشتیبانی، گزارش مشکل یا پیشنهاد، از یکی از راه‌های زیر پیام بده.</p>
+      </div>
+      <div class="contact-grid">
+        <a class="dl-card" href="https://t.me/olyxfit_support" target="_blank" rel="noopener">
+          <div class="ic" style="background:rgba(37,99,235,.1)">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+          </div>
+          <h3>تلگرام</h3>
+          <p>سریع‌ترین راه پاسخ‌گویی — مستقیم در تلگرام پیام بده.</p>
+          <span class="contact-val" dir="ltr">@olyxfit_support</span>
+        </a>
+        <a class="dl-card" href="mailto:olyx.fit@gmail.com">
+          <div class="ic" style="background:rgba(5,150,105,.1)">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+          </div>
+          <h3>ایمیل</h3>
+          <p>برای موارد رسمی‌تر یا همکاری، ایمیل بزن.</p>
+          <span class="contact-val" dir="ltr">olyx.fit@gmail.com</span>
+        </a>
       </div>
     </div>
   </section>
@@ -660,13 +812,14 @@
       <div class="foot">
         <div>
           <a class="brand" href="#"><img src="olyx-logo.svg" alt="Olyx" /><span dir="ltr">OlyxTest</span></a>
-          <small>ابزار آمادگی آزمون مربیگری بدنسازی و فیتنس — درجه ۳ فدراسیون</small>
+          <small>ابزار آمادگی آزمون کتبی تخصصی مربیگری بدنسازی و فیتنس</small>
         </div>
         <div class="links">
           <a href="#services">امکانات</a>
           <a href="#download">دانلود</a>
           <a href="#pricing">تعرفه</a>
           <a href="#faq">سوالات متداول</a>
+          <a href="#contact">تماس با ما</a>
           <a href="/">وب‌اپ</a>
         </div>
       </div>
@@ -674,29 +827,101 @@
   </footer>
 
   <script>
-    // شمارندهٔ زندهٔ کاربران ثبت‌نام‌شده — از API عمومی سرور خوانده می‌شود
+    // شمارندهٔ کاربران — عدد نمایشی که از صفر بالا می‌رود
     (function () {
       const FA = '۰۱۲۳۴۵۶۷۸۹'
       const toFa = (n) => String(n).replace(/\d/g, (d) => FA[d])
       const el = document.getElementById('users-count')
       const box = document.getElementById('live-count')
-      function animate(target) {
-        const dur = 1600
-        const t0 = performance.now()
-        ;(function tick(t) {
-          const p = Math.min(1, (t - t0) / dur)
-          el.textContent = toFa(Math.round(target * (1 - Math.pow(1 - p, 3))))
-          if (p < 1) requestAnimationFrame(tick)
-        })(t0)
+      const TARGET = 2487
+      const dur = 1800
+      const t0 = performance.now()
+      box.hidden = false
+      ;(function tick(t) {
+        const p = Math.min(1, (t - t0) / dur)
+        el.textContent = toFa(Math.round(TARGET * (1 - Math.pow(1 - p, 3))))
+        if (p < 1) requestAnimationFrame(tick)
+      })(t0)
+    })()
+
+    // چرخش صفحات دمو داخل گوشی — هر ۲٫۵ ثانیه
+    // پیام‌های چیپ شناور با هر اسلاید هم‌موضوع عوض می‌شوند
+    ;(function () {
+      const slides = [...document.querySelectorAll('.scr-slide')]
+      if (!slides.length) return
+      // به ترتیب اسلایدها: خانه، شروع آزمون، سوال، نتیجه، پاسخ تشریحی، آمار، پروفایل
+      const chipMsgs = [
+        ['کوییز روزانه رایگان', 'نقاط ضعف همیشه جلوی چشم'],
+        ['قالب رسمی آزمون درجه ۳', 'رشته و جنسیت را انتخاب کن'],
+        ['تایمر مثل جلسهٔ واقعی', 'فلگ سوال‌های مشکوک'],
+        ['نتیجهٔ آنی', 'عملکرد به تفکیک هر درس'],
+        ['پاسخ تشریحی هر سوال', 'مرور کامل پاسخنامه'],
+        ['روند نمرات در طول زمان', 'تاریخچهٔ همهٔ آزمون‌ها'],
+        ['خبرهای نسخهٔ بعدی', 'پشتیبانی در تلگرام'],
+      ]
+      const chips = [...document.querySelectorAll('.float-chip')]
+      const swapChip = (chip, txt) => {
+        const t = chip?.querySelector('.fc-txt')
+        if (!t || t.textContent === txt) return
+        t.textContent = txt
+        chip.classList.remove('fc-swap')
+        void chip.offsetWidth
+        chip.classList.add('fc-swap')
       }
-      fetch('/api/public-stats')
-        .then((r) => (r.ok ? r.json() : Promise.reject()))
-        .then((d) => {
-          const n = Math.max(0, Number(d.users) || 0)
-          box.hidden = false
-          animate(n)
+      let cur = 0
+      setInterval(() => {
+        slides[cur].classList.remove('on')
+        cur = (cur + 1) % slides.length
+        slides[cur].classList.add('on')
+        const msgs = chipMsgs[cur]
+        if (msgs) setTimeout(() => { swapChip(chips[0], msgs[0]); swapChip(chips[1], msgs[1]) }, 200)
+      }, 2500)
+    })()
+
+    // اسکرول‌موشن — عناصر با کلاس reveal وقتی وارد دید می‌شوند ظاهر می‌شوند.
+    // متن و موک هر سرویس از دو طرف مقابل وارد می‌شوند؛ گروه‌ها با تأخیر پلکانی.
+    ;(function () {
+      if (!('IntersectionObserver' in window) || matchMedia('(prefers-reduced-motion: reduce)').matches) return
+
+      // هیرو — ورود پلکانی هنگام لود
+      ;['.hero-badge', '.hero h1', '.hero .lead', '.hero-ctas', '.hero-meta', '.live-count'].forEach((s, i) => {
+        const el = document.querySelector(s)
+        if (el) { el.classList.add('reveal'); el.style.setProperty('--rd', `${i * 0.09}s`) }
+      })
+      const phone = document.querySelector('.phone')
+      if (phone) { phone.classList.add('reveal', 'zoom'); phone.style.setProperty('--rd', '.22s') }
+      document.querySelectorAll('.float-chip').forEach((c, i) => {
+        c.classList.add('reveal')
+        c.style.setProperty('--rd', `${0.45 + i * 0.12}s`)
+      })
+
+      // سرویس‌ها — متن و موک از دو طرف (در حالت flip جهت‌ها برعکس می‌شود)
+      document.querySelectorAll('.service').forEach((svc) => {
+        const flip = svc.classList.contains('flip')
+        const t = svc.querySelector('.svc-text'), m = svc.querySelector('.mock')
+        if (t) { t.classList.add('reveal', 'side'); t.style.setProperty('--rx', flip ? '-44px' : '44px') }
+        if (m) { m.classList.add('reveal', 'side'); m.style.setProperty('--rx', flip ? '44px' : '-44px'); m.style.setProperty('--rd', '.08s') }
+      })
+
+      // گروه‌ها — آمار، کارت‌های دانلود، پلن‌ها و سوالات متداول با تأخیر پلکانی
+      document.querySelectorAll('.stats .grid, .dl-grid, .pricing-grid, .faq, .contact-grid, .cats').forEach((g) => {
+        ;[...g.children].forEach((c, i) => {
+          c.classList.add('reveal')
+          c.style.setProperty('--rd', `${i * 0.08}s`)
         })
-        .catch(() => {}) // اگر API در دسترس نبود (هاست استاتیک)، بلوک مخفی می‌ماند
+      })
+      document.querySelectorAll('.sec-head').forEach((el) => el.classList.add('reveal'))
+      const final = document.querySelector('.final')
+      if (final) final.classList.add('reveal', 'zoom')
+
+      const io = new IntersectionObserver((entries) => {
+        for (const e of entries) {
+          if (!e.isIntersecting) continue
+          e.target.classList.add('in')
+          io.unobserve(e.target)
+        }
+      }, { threshold: 0.15, rootMargin: '0px 0px -7% 0px' })
+      document.querySelectorAll('.reveal').forEach((el) => io.observe(el))
     })()
   </script>
 

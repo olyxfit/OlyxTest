@@ -88,21 +88,20 @@ export default function Welcome() {
         </div>
 
         {/* عنوان */}
-        <div className="flex flex-col items-center gap-4 animate-pop" style={{ animationDelay: '80ms' }}>
-          <h1 dir="ltr" className="text-5xl sm:text-6xl font-black tracking-tight text-white drop-shadow-[0_4px_30px_rgba(0,0,0,0.7)]">
-            OlyxTest
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-cyan-300">.ai</span>
+        <div className="flex flex-col items-center gap-5 animate-pop" style={{ animationDelay: '80ms' }}>
+          <h1 dir="ltr" className="text-4xl sm:text-5xl font-black tracking-tight text-white drop-shadow-[0_4px_30px_rgba(0,0,0,0.7)]">
+            Olyx<span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-cyan-300">Test</span>
           </h1>
-          <p className="max-w-md text-slate-200 leading-8 text-base sm:text-lg">
+          <p className="max-w-sm text-slate-300 leading-7 text-sm sm:text-base">
             بانک کامل سوالات آزمون مربیگری بدنسازی و فیتنس — آزمون جامع و تک‌درس، پاسخ تشریحی هر سوال و تحلیل پیشرفت، همه در یک اپ.
           </p>
           <div className="flex flex-wrap justify-center gap-2">
             {FEATURES.map((f) => (
               <span
                 key={f.label}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-white/15 bg-white/10 backdrop-blur text-sm font-bold text-white"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/15 bg-white/10 backdrop-blur text-xs font-bold text-white"
               >
-                <f.icon className="size-4 text-cyan-300" />
+                <f.icon className="size-3.5 text-cyan-300" />
                 {f.label}
               </span>
             ))}

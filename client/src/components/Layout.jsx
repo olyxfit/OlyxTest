@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { BarChart3, Bell, Home, UserRound } from 'lucide-react'
+import { BarChart3, Home, UserRound } from 'lucide-react'
 
 // رتبه‌بندی فعلاً از ناوبری حذف شده — در نقشهٔ توسعه (نسخه‌های بعدی) برمی‌گردد
 const TABS = [
@@ -26,13 +26,6 @@ export default function Layout() {
                   className="size-9 drop-shadow-[0_3px_10px_rgba(0,200,253,0.45)] transition-transform group-active:scale-95"
                 />
                 <span dir="ltr" className="font-extrabold text-base tracking-tight text-slate-800">OlyxTest</span>
-              </button>
-              <button
-                onClick={() => nav('/panel')}
-                className="size-9 rounded-xl bg-white/60 border border-white/70 backdrop-blur grid place-items-center text-slate-600 shadow-sm hover:bg-white transition-colors active:scale-95"
-                title="اطلاع‌رسانی و پشتیبانی"
-              >
-                <Bell className="size-4" />
               </button>
             </div>
           </header>

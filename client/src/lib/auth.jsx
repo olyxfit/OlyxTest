@@ -47,10 +47,20 @@ export function AuthProvider({ children }) {
     setUser(d.user)
   }
 
+  const updateAvatar = async (dataUrl) => {
+    const d = await api('/me/avatar', { method: 'PUT', body: { dataUrl } })
+    setUser(d.user)
+  }
+
+  const removeAvatar = async () => {
+    const d = await api('/me/avatar', { method: 'DELETE' })
+    setUser(d.user)
+  }
+
   const refresh = () => api('/me').then((d) => setUser(d.user)).catch(() => {})
 
   return (
-    <AuthCtx.Provider value={{ user, loading, requestOtp, verifyOtp, login, register, logout, setUser, refresh, updateProfile }}>
+    <AuthCtx.Provider value={{ user, loading, requestOtp, verifyOtp, login, register, logout, setUser, refresh, updateProfile, updateAvatar, removeAvatar }}>
       {children}
     </AuthCtx.Provider>
   )

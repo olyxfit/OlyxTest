@@ -23,10 +23,14 @@ export const openExternal = async (url) => {
   window.open(url, '_blank')
 }
 
-// تشخیص یک‌بارهٔ دسترس‌پذیری سرور: اگر API زنده نبود، بک‌اند دموی مرورگر فعال می‌شود
+// تشخیص دسترس‌پذیری سرور: اگر API زنده نبود، بک‌اند دموی مرورگر فعال می‌شود.
+// نتیجهٔ live برای کل نشست کش می‌شود؛ demo فقط ۳۰ ثانیه کش می‌شود تا یک قطعی
+// موقت (مثلاً خواب سرور یا نت ضعیف هنگام اجرای اپ) کل نشست را به دمو نبرد.
+const DEMO_RECHECK_MS = 30 * 1000
 let mode = null
+let modeCheckedAt = 0
 async function resolveMode() {
-  if (mode) return mode
+  if (mode === 'live' || (mode === 'demo' && Date.now() - modeCheckedAt < DEMO_RECHECK_MS)) return mode
   try {
     const res = await fetch(`${BASE}/api/health`)
     const data = await res.json().catch(() => null)
@@ -34,6 +38,7 @@ async function resolveMode() {
   } catch {
     mode = 'demo'
   }
+  modeCheckedAt = Date.now()
   return mode
 }
 

@@ -3,17 +3,32 @@ import { api, getToken, setToken, clearToken } from './api.js'
 import Login from './components/Login.jsx'
 import Overview from './components/Overview.jsx'
 import Users from './components/Users.jsx'
-import Orders from './components/Orders.jsx'
+import Finance from './components/Finance.jsx'
 import Reviews from './components/Reviews.jsx'
 import Announcements from './components/Announcements.jsx'
+import Icon from './icons.jsx'
 
-// هر بخش = یک «شیت» باز در استایل Smartsheet
+// ناوبری سایدبار — بخش‌ها زیر گروه‌های موضوعی دسته‌بندی شده‌اند؛
+// c رنگ کاشی آیکون و لبهٔ آیتم فعال است
 const NAV = [
-  { id: 'dash', label: 'داشبورد', icon: '📊' },
-  { id: 'users', label: 'کاربران', icon: '👥' },
-  { id: 'orders', label: 'سفارش‌ها', icon: '🧾' },
-  { id: 'reviews', label: 'نظرها', icon: '⭐' },
-  { id: 'anns', label: 'اعلان‌ها', icon: '�' },
+  {
+    g: 'گزارش و تحلیل',
+    items: [{ id: 'dash', label: 'داشبورد', icon: 'dashboard', c: '#8b5cf6' }],
+  },
+  {
+    g: 'مدیریت',
+    items: [
+      { id: 'users', label: 'کاربران', icon: 'users', c: '#2f7cf6' },
+      { id: 'finance', label: 'مدیریت مالی', icon: 'money', c: '#1fa564' },
+    ],
+  },
+  {
+    g: 'ارتباط با کاربران',
+    items: [
+      { id: 'reviews', label: 'نظرها', icon: 'star', c: '#f0a818' },
+      { id: 'anns', label: 'اعلان‌ها', icon: 'mega', c: '#ef4444' },
+    ],
+  },
 ]
 
 export default function App() {
@@ -59,30 +74,42 @@ export default function App() {
 
   return (
     <div className="shell">
-      <header className="topbar">
-        <span className="tb-logo">▦</span>
-        <span className="tb-title">پنل مدیریت OlyxTest</span>
-        <span className="tb-sub">آزمون مربیگری بدنسازی و فیتنس</span>
-        <span className="tb-spacer" />
-        <span className="tb-user">
-          <span className="tb-avatar">{(user.name || '؟')[0]}</span>
-          <span className="nm">{user.name} • <span className="ltr">{user.phone}</span></span>
-        </span>
-        <button className="tb-logout" onClick={logout}>خروج</button>
-      </header>
+      <aside className="sidebar">
+        <div className="sb-brand">
+          <span className="tb-logo"><Icon n="dashboard" s={15} /></span>
+          <span className="sb-titles">
+            <b>پنل مدیریت OlyxTest</b>
+            <small>آزمون مربیگری بدنسازی و فیتنس</small>
+          </span>
+        </div>
 
-      <nav className="tabstrip">
-        {NAV.map((n) => (
-          <button key={n.id} className={`stab ${tab === n.id ? 'on' : ''}`} onClick={() => setTab(n.id)}>
-            <span className="si">{n.icon}</span>{n.label}
-          </button>
-        ))}
-      </nav>
+        <nav className="sb-nav">
+          {NAV.map((grp) => (
+            <div className="sb-group" key={grp.g}>
+              <div className="sb-glabel">{grp.g}</div>
+              {grp.items.map((n) => (
+                <button key={n.id} className={`snav ${tab === n.id ? 'on' : ''}`} style={{ '--tc': n.c }} onClick={() => setTab(n.id)}>
+                  <span className="si" style={{ background: n.c }}><Icon n={n.icon} s={11} /></span>{n.label}
+                </button>
+              ))}
+            </div>
+          ))}
+        </nav>
+
+        <div className="sb-foot">
+          <span className="tb-user">
+            <span className="tb-avatar">{(user.name || '؟')[0]}</span>
+            <span className="nm">{user.name} • <span className="ltr">{user.phone}</span></span>
+          </span>
+          <a className="tb-applink" href="/" title="باز کردن اپ"><Icon n="phone" s={13} /> اپ</a>
+          <button className="tb-logout" onClick={logout}><Icon n="logout" s={13} /> خروج</button>
+        </div>
+      </aside>
 
       <main className="workspace">
         {tab === 'dash' && <Overview {...pageProps} />}
         {tab === 'users' && <Users {...pageProps} />}
-        {tab === 'orders' && <Orders {...pageProps} />}
+        {tab === 'finance' && <Finance {...pageProps} />}
         {tab === 'reviews' && <Reviews {...pageProps} />}
         {tab === 'anns' && <Announcements {...pageProps} />}
       </main>

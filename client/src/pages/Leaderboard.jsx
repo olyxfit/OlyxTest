@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Crown, Trophy } from 'lucide-react'
-import { api } from '../lib/api.js'
+import { api, apiUrl } from '../lib/api.js'
 import { useAuth } from '../lib/auth.jsx'
+import { levelOf } from '../lib/levels.js'
 
 const toFa = (n) => (Number.isFinite(Number(n)) ? Number(n).toLocaleString('fa-IR') : '۰')
 
@@ -45,8 +46,8 @@ export default function Leaderboard() {
           <Trophy className="size-5 text-[#0b0f14]" />
         </span>
         <div>
-          <h2 className="text-xl font-extrabold">جدول امتیازات</h2>
-          <p className="on-photo text-xs mt-0.5">هر پاسخ درست = {toFa(10)} امتیاز</p>
+          <h2 className="text-xl font-extrabold">جدول <span dir="ltr">XP</span></h2>
+          <p className="on-photo text-xs mt-0.5">هر پاسخ درست = {toFa(10)} <span dir="ltr">XP</span></p>
         </div>
       </div>
 
@@ -63,13 +64,13 @@ export default function Leaderboard() {
           </span>
           <span className="text-left">
             <span className="block text-xl font-extrabold text-amber-600">#{toFa(data.me.rank)}</span>
-            <span className="block text-[11px] text-slate-500">{toFa(data.me.points)} امتیاز</span>
+            <span className="block text-[11px] text-slate-500">{toFa(data.me.points)} <span dir="ltr">XP</span></span>
           </span>
         </div>
       ) : (
         !loading && (
           <div className="card p-4 text-sm text-slate-500 leading-6 animate-pop">
-            در این بازه هنوز امتیازی ندارید — یک آزمون بدهید و وارد جدول شوید!
+            در این بازه هنوز <span dir="ltr">XP</span> ندارید — یک آزمون بدهید و وارد جدول شوید!
           </div>
         )
       )}
@@ -100,12 +101,13 @@ export default function Leaderboard() {
         </div>
       ) : top.length === 0 ? (
         <div className="card p-8 text-center text-sm text-slate-500">
-          هنوز کسی در این بازه امتیازی نگرفته است — نفر اول شما باشید!
+          هنوز کسی در این بازه <span dir="ltr">XP</span> نگرفته است — نفر اول شما باشید!
         </div>
       ) : (
         <div className="space-y-2.5">
           {top.map((r, i) => {
             const isMe = r.userId === user?.id
+            const lv = levelOf(r.points)
             return (
               <div
                 key={r.userId}
@@ -117,21 +119,27 @@ export default function Leaderboard() {
                 <span className={`size-9 shrink-0 rounded-xl grid place-items-center text-sm font-extrabold ${rankBadge(r.rank)}`}>
                   {toFa(r.rank)}
                 </span>
-                <span className="size-9 shrink-0 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-700 grid place-items-center text-sm font-extrabold text-white">
-                  {r.name?.[0] || '؟'}
+                <span className="size-9 shrink-0 overflow-hidden rounded-full bg-gradient-to-br from-indigo-500 to-indigo-700 grid place-items-center text-sm font-extrabold text-white">
+                  {r.avatar ? <img src={apiUrl(r.avatar)} alt="" className="size-full object-cover" /> : r.name?.[0] || '؟'}
                 </span>
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-bold truncate">
                     {r.name}
                     {isMe && <span className="text-indigo-600 text-[11px] font-normal"> (شما)</span>}
                   </div>
-                  <div className="text-[11px] text-slate-500 mt-0.5">
-                    {toFa(r.exams)} آزمون • بهترین {toFa(r.best)}٪
+                  <div className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                    <span
+                      className="rounded-full px-1.5 py-px text-[10px] font-bold"
+                      style={{ background: `${lv.level.c}1f`, color: lv.level.c }}
+                    >
+                      سطح {toFa(lv.idx + 1)} • {lv.level.title}
+                    </span>
+                    <span>{toFa(r.exams)} آزمون • بهترین {toFa(r.best)}٪</span>
                   </div>
                 </div>
                 <div className="shrink-0 text-left">
                   <div className="text-sm font-extrabold text-amber-600">{toFa(r.points)}</div>
-                  <div className="text-[10px] text-slate-500">امتیاز</div>
+                  <div className="text-[10px] text-slate-500" dir="ltr">XP</div>
                 </div>
               </div>
             )

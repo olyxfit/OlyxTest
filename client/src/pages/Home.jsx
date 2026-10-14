@@ -91,25 +91,53 @@ export default function Home() {
       {/* ساخت آزمون — مشترکین یا اولین آزمون رایگان */}
       <button
         onClick={() => (canBuild ? setBuilderOpen(true) : nav('/subscription'))}
-        className="w-full p-4 flex items-center gap-3 text-right rounded-2xl bg-gradient-to-l from-indigo-800 via-indigo-600 to-indigo-500 shadow-lg shadow-indigo-600/30 ring-1 ring-white/25 ring-inset transition-all hover:brightness-110 active:scale-[0.99] animate-pop"
+        className="group relative w-full overflow-hidden rounded-3xl bg-gradient-to-l from-indigo-800 via-indigo-600 to-indigo-500 p-5 sm:p-6 text-right shadow-xl shadow-indigo-600/30 ring-1 ring-white/25 ring-inset transition-all hover:brightness-110 active:scale-[0.99] animate-pop"
       >
-        <span className="size-11 shrink-0 rounded-xl bg-white/15 ring-1 ring-white/30 ring-inset grid place-items-center">
-          <Wand2 className="size-5 text-white" />
-        </span>
-        <span className="flex-1">
-          <span className="block text-sm font-bold text-white flex items-center gap-1.5">
-            ساخت آزمون
-            {!canBuild && <Lock className="size-3.5 text-amber-300" />}
+        {/* حلقه‌های تزئینی + واترمارک */}
+        <div className="absolute -top-12 -left-12 size-40 rounded-full bg-white/10" />
+        <div className="absolute -bottom-14 right-8 size-28 rounded-full bg-white/10" />
+        <Dumbbell className="absolute bottom-10 left-3 size-28 -rotate-12 text-white/[0.06] pointer-events-none" />
+
+        <div className="relative flex items-start justify-between">
+          <span className="size-14 rounded-2xl bg-white/15 ring-1 ring-white/30 ring-inset grid place-items-center shadow-lg shadow-indigo-900/30">
+            <Wand2 className="size-7 text-white" />
           </span>
-          <span className="block text-[11px] text-indigo-100 mt-0.5">
+          {!canBuild && (
+            <span className="flex items-center gap-1 rounded-full bg-black/25 px-3 py-1.5 text-xs font-bold text-amber-200 ring-1 ring-amber-300/40">
+              <Lock className="size-3.5" /> ویژه مشترکین
+            </span>
+          )}
+        </div>
+
+        <div className="relative mt-4">
+          <h3 className="text-xl font-extrabold text-white">ساخت آزمون</h3>
+          <p className="text-sm text-indigo-100 mt-1.5 leading-6">
             {subActive || isAdmin
               ? 'آزمون کتبی تخصصی درجه ۳ • بدنسازی یا فیتنس'
               : freeExamUsed
                 ? 'ویژه مشترکین — آزمون‌های تک‌درس و کوییز روزانه رایگان‌اند'
                 : 'اولین آزمون جامع شما رایگان است • بدنسازی یا فیتنس'}
-          </span>
-        </span>
-        <ChevronLeft className="size-4 text-indigo-200" />
+          </p>
+
+          {/* ویژگی‌های آزمون */}
+          <div className="mt-3 flex flex-wrap items-center gap-1.5">
+            {['۳۰ سوال', '۶ درس تخصصی', 'بدنسازی و فیتنس'].map((c) => (
+              <span key={c} className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold text-indigo-50 ring-1 ring-white/20">
+                {c}
+              </span>
+            ))}
+          </div>
+
+          {/* CTA */}
+          <div className="mt-4 flex items-center justify-between border-t border-white/15 pt-3.5">
+            <span className="text-sm font-bold text-white">
+              {canBuild ? 'شروع ساخت آزمون' : 'فعال‌سازی اشتراک'}
+            </span>
+            <span className="size-8 rounded-full bg-white/15 ring-1 ring-white/30 ring-inset grid place-items-center transition-transform group-hover:-translate-x-1">
+              <ChevronLeft className="size-4 text-white" />
+            </span>
+          </div>
+        </div>
       </button>
 
       {/* کوییز روزانه — رایگان برای همه */}

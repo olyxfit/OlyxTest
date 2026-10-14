@@ -54,7 +54,8 @@ export default function Auth() {
   const [resendLeft, setResendLeft] = useState(0)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
-  const { requestOtp, verifyOtp, login } = useAuth()
+  const [signup, setSignup] = useState(false) // حالت ثبت‌نام در تب رمز
+  const { requestOtp, verifyOtp, login, register } = useAuth()
   const nav = useNavigate()
   const codeRef = useRef(null)
 
@@ -111,7 +112,9 @@ export default function Auth() {
     setBusy(true)
     try {
       const id = userId.replace(/[۰-۹]/g, (d) => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d))
-      await login(id, password)
+      // ثبت‌نام با شمارهٔ تکراری سمت سرور به ورود تبدیل می‌شود (نام جدید هم اعمال می‌شود)
+      if (signup) await register(name, id, password)
+      else await login(id, password)
       nav('/', { replace: true })
     } catch (err) {
       setError(err.message)
@@ -141,23 +144,36 @@ export default function Auth() {
             <span className="text-indigo-600">مربیگری بدنسازی</span>
           </h1>
           <p className="mt-3 text-slate-500 leading-7">
-            تمرین با بانک کامل سوالات تغذیه، تمرین، فیزیولوژی، طراحی تمرین، سیستم تمرینی و داوری — منطبق بر آزمون فدراسیون، با پاسخ تشریحی
+            تمرین با بانک کامل سوالات تغذیه، تمرین، فیزیولوژی، طراحی تمرین، سیستم تمرینی و داوری — منطبق بر آزمون کتبی تخصصی مربیگری، با پاسخ تشریحی
           </p>
         </div>
 
       {step === 'phone' && mode === 'password' && (
         <form onSubmit={submitPassword} className="mt-10 space-y-4 animate-pop" style={{ animationDelay: '60ms' }}>
+          {signup && (
+            <div className="relative">
+              <User className="absolute right-4 top-1/2 -translate-y-1/2 size-5 text-slate-500" />
+              <input
+                className="input pr-12"
+                placeholder="نام و نام خانوادگی"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
+            </div>
+          )}
           <div className="relative">
-            <User className="absolute right-4 top-1/2 -translate-y-1/2 size-5 text-slate-500" />
+            <Phone className="absolute right-4 top-1/2 -translate-y-1/2 size-5 text-slate-500" />
             <input
               className="input pr-12"
-              placeholder="نام کاربری"
+              placeholder="شماره موبایل"
+              inputMode="tel"
               dir="ltr"
               style={{ textAlign: 'right' }}
               value={userId}
               onChange={(e) => setUserId(e.target.value)}
               required
-              autoFocus
+              autoFocus={!signup}
             />
           </div>
           <div className="relative">
@@ -186,8 +202,16 @@ export default function Auth() {
           )}
 
           <button className="btn-primary flex items-center justify-center gap-2" disabled={busy}>
-            {busy ? 'لطفاً صبر کنید…' : 'ورود'}
+            {busy ? 'لطفاً صبر کنید…' : signup ? 'ثبت‌نام / ورود' : 'ورود'}
             {!busy && <ArrowLeft className="size-4" />}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => { setSignup(!signup); setError('') }}
+            className="w-full text-center text-sm text-indigo-600 hover:text-indigo-700"
+          >
+            {signup ? 'حساب دارید؟ ورود' : 'حساب ندارید؟ ثبت‌نام با رمز'}
           </button>
 
           <button

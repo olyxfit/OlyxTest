@@ -13,6 +13,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const app = express()
 const PORT = process.env.PORT || 3001
 
+// عکس پروفایل به‌صورت data URL می‌آید — حد بزرگ‌تر از bodyهای معمولی لازم دارد
+app.use('/api/me/avatar', express.json({ limit: '2mb' }))
 app.use(express.json())
 
 // برای تشخیص دسترس‌پذیری API توسط کلاینت (حالت دمو در نبود سرور)
@@ -38,7 +40,7 @@ app.get('/api/public-stats', (_, res) => {
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS')
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, PUT, DELETE, OPTIONS')
   if (req.method === 'OPTIONS') return res.sendStatus(204)
   next()
 })
@@ -70,6 +72,8 @@ const pointsOf = (a) => a.correct * 10 // هر پاسخ درست = ۱۰ امتی
 
 const userPoints = (userId) =>
   getDb().attempts.reduce((s, a) => (a.userId === userId ? s + pointsOf(a) : s), 0)
+const userExams = (userId) =>
+  getDb().attempts.reduce((n, a) => (a.userId === userId ? n + 1 : n), 0)
 
 // استریک فقط یک‌بار در روز و هنگام تکمیل آزمون افزایش می‌یابد
 const bumpStreak = (u, now) => {
@@ -110,15 +114,18 @@ function auth(req, res, next) {
   next()
 }
 
+const avatarUrl = (u) => (u?.avatarAt ? `/api/avatar/${u.id}?v=${u.avatarAt}` : null)
+
 const publicUser = (u) => ({
   id: u.id,
   name: u.name,
   phone: u.phone,
-  gender: u.gender ?? null,
+  avatar: avatarUrl(u),
   createdAt: u.createdAt,
   subscription: u.subscription ?? null,
   points: userPoints(u.id),
   streak: u.streak?.count ?? 0,
+  exams: userExams(u.id),
   admin: !!u.admin,
   freeExamUsed: freeExamUsed(u),
 })
@@ -162,8 +169,20 @@ app.post('/api/register', (req, res) => {
   if (password.length < 4)
     return res.status(400).json({ error: 'رمز عبور باید حداقل ۴ کاراکتر باشد' })
   const db = getDb()
-  if (db.users.some((u) => u.phone === phone))
-    return res.status(409).json({ error: 'این شماره موبایل قبلاً ثبت‌نام کرده است' })
+  const existing = db.users.find((u) => u.phone === phone)
+  if (existing) {
+    // شمارهٔ تکراری = ورود، نه ثبت‌نام دوباره. حساب‌های OTP فاقد رمزند — باید با کد وارد شوند
+    if (!existing.password)
+      return res.status(409).json({ error: 'این شماره قبلاً ثبت‌نام شده است — با «کد تایید پیامکی» وارد شوید', code: 'USE_OTP' })
+    if (!verifyPassword(password, existing.password))
+      return res.status(401).json({ error: 'این شماره قبلاً ثبت‌نام شده و رمز واردشده درست نیست', code: 'WRONG_PASSWORD' })
+    // نام جدید ارسالی (اگر متفاوت باشد) روی همان حساب اعمال می‌شود
+    const newName = name.trim()
+    if (newName !== existing.name) existing.name = newName
+    const token = newSession(db, existing.id)
+    save()
+    return res.json({ token, user: publicUser(existing) })
+  }
 
   const user = {
     id: crypto.randomUUID(),
@@ -191,7 +210,7 @@ app.post('/api/login', (req, res) => {
 
 app.get('/api/me', auth, (req, res) => res.json({ user: publicUser(req.user) }))
 
-// ویرایش اطلاعات خود کاربر — نام و جنسیت (موبایل = هویت ورود است و تغییرش با ادمین است)
+// ویرایش اطلاعات خود کاربر — نام و موبایل (موبایل = هویت ورود است؛ باید یکتا بماند)
 app.patch('/api/me', auth, (req, res) => {
   const u = req.user
   if (req.body?.name != null) {
@@ -199,13 +218,75 @@ app.patch('/api/me', auth, (req, res) => {
     if (!name || name.length > 60) return res.status(400).json({ error: 'نام معتبر نیست' })
     u.name = name
   }
-  if (req.body?.gender !== undefined) {
-    if (!['men', 'women', null].includes(req.body.gender))
-      return res.status(400).json({ error: 'جنسیت نامعتبر است' })
-    u.gender = req.body.gender
+  if (req.body?.phone != null) {
+    const phone = normalizePhone(req.body.phone)
+    if (!isValidPhone(phone))
+      return res.status(400).json({ error: 'شماره موبایل نامعتبر است. مثال: 09123456789' })
+    if (getDb().users.some((x) => x.id !== u.id && x.phone === phone))
+      return res.status(409).json({ error: 'این شماره برای کاربر دیگری ثبت شده است' })
+    u.phone = phone
   }
   save()
   res.json({ user: publicUser(u) })
+})
+
+// ---------- عکس پروفایل ----------
+// کلاینت عکس را روی canvas کراپ/کوچک و به‌صورت data URL می‌فرستد؛ فایل روی دیسک در data/avatars نگه‌داری می‌شود
+const AVATAR_DIR = path.join(__dirname, 'data', 'avatars')
+const AVATAR_EXT = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' }
+const avatarFileOf = (userId) => {
+  try {
+    const f = fs.readdirSync(AVATAR_DIR).find((x) => x.startsWith(`${userId}.`))
+    return f ? path.join(AVATAR_DIR, f) : null
+  } catch {
+    return null
+  }
+}
+const removeAvatarFiles = (userId) => {
+  const f = avatarFileOf(userId)
+  if (f) fs.unlinkSync(f)
+}
+
+app.get('/api/avatar/:userId', (req, res) => {
+  const u = getDb().users.find((x) => x.id === req.params.userId)
+  const file = u?.avatarAt ? avatarFileOf(u.id) : null
+  if (!file) return res.sendStatus(404)
+  res.setHeader('Cache-Control', 'private, max-age=300')
+  res.sendFile(file)
+})
+
+app.put('/api/me/avatar', auth, (req, res) => {
+  const m = /^data:(image\/(?:jpeg|png|webp));base64,([a-zA-Z0-9+/=\s]+)$/.exec(String(req.body?.dataUrl || ''))
+  if (!m) return res.status(400).json({ error: 'فرمت عکس نامعتبر است' })
+  const buf = Buffer.from(m[2].replace(/\s/g, ''), 'base64')
+  if (!buf.length || buf.length > 1_500_000)
+    return res.status(400).json({ error: 'حجم عکس بیش از حد مجاز است' })
+  // امضای باینری فایل چک می‌شود — به content-type ادعاشده اعتماد نمی‌کنیم
+  const sniffed =
+    buf[0] === 0xff && buf[1] === 0xd8 ? 'image/jpeg'
+    : buf.length > 8 && buf.readUInt32BE(0) === 0x89504e47 ? 'image/png'
+    : buf.length > 12 && buf.subarray(0, 4).toString('ascii') === 'RIFF' && buf.subarray(8, 12).toString('ascii') === 'WEBP' ? 'image/webp'
+    : null
+  if (!sniffed || sniffed !== m[1]) return res.status(400).json({ error: 'فرمت عکس نامعتبر است' })
+  fs.mkdirSync(AVATAR_DIR, { recursive: true })
+  removeAvatarFiles(req.user.id)
+  fs.writeFileSync(path.join(AVATAR_DIR, `${req.user.id}.${AVATAR_EXT[sniffed]}`), buf)
+  req.user.avatarAt = Date.now()
+  save()
+  res.json({ user: publicUser(req.user) })
+})
+
+app.delete('/api/me/avatar', auth, (req, res) => {
+  removeAvatarFiles(req.user.id)
+  delete req.user.avatarAt
+  save()
+  res.json({ user: publicUser(req.user) })
+})
+
+// خطای حجم body به‌جای HTML پیش‌فرض اکسپرس، JSON برگردد
+app.use('/api/me/avatar', (err, _req, res, next) => {
+  if (err?.type === 'entity.too.large') return res.status(413).json({ error: 'حجم عکس بیش از حد مجاز است' })
+  next(err)
 })
 
 app.post('/api/logout', auth, (req, res) => {
@@ -308,12 +389,15 @@ app.post('/api/otp/verify', (req, res) => {
   }
 
   let user = db.users.find((u) => u.phone === phone)
+  const name = String(req.body?.name || '').trim()
   if (!user) {
-    const name = String(req.body?.name || '').trim()
     if (!name)
       return res.status(400).json({ error: 'نام و نام خانوادگی الزامی است', code: 'NAME_REQUIRED' })
     user = { id: crypto.randomUUID(), name, phone, createdAt: Date.now() }
     db.users.push(user)
+  } else if (name && name !== user.name) {
+    // شمارهٔ ثبت‌شده + نام جدید: فقط وارد می‌شود و نام همان حساب به‌روز می‌شود
+    user.name = name.slice(0, 60)
   }
   db.otps = db.otps.filter((o) => o !== otp)
 
@@ -354,6 +438,13 @@ app.post('/api/subscribe', auth, adminOnly, (req, res) => {
 const ORDER_TTL = 30 * 60 * 1000 // سفارش در انتظار پرداخت نهایتاً ۳۰ دقیقه معتبر است
 // سفارش‌های قدیمی بدون expiresAt با createdAt + TTL منقضی می‌شوند
 const orderExpired = (o) => o.status === 'pending' && Date.now() > (o.expiresAt ?? o.createdAt + ORDER_TTL)
+// persists expiry in the db so order status and admin stats stay consistent
+const markExpired = (o) => {
+  if (!orderExpired(o)) return false
+  o.status = 'expired'
+  save()
+  return true
+}
 
 app.post('/api/payment/order', auth, async (req, res) => {
   const plan = PLANS[req.body?.plan]
@@ -361,17 +452,29 @@ app.post('/api/payment/order', auth, async (req, res) => {
   if (!bale.baleEnabled)
     return res.status(503).json({ error: 'درگاه پرداخت بله پیکربندی نشده است', code: 'PAYMENT_NOT_CONFIGURED' })
 
-  const order = {
-    id: `o-${crypto.randomUUID().slice(0, 8)}`,
-    userId: req.user.id,
-    plan: req.body.plan,
-    amountRial: plan.priceRial,
-    status: 'pending',
-    createdAt: Date.now(),
-    expiresAt: Date.now() + ORDER_TTL,
+  // a user has at most one open order — same plan resumes it, a different plan cancels the old one
+  let open = getDb().orders.find((o) => o.userId === req.user.id && o.status === 'pending')
+  if (open && markExpired(open)) open = null
+  let order
+  if (open && open.plan === req.body.plan) {
+    order = open
+  } else {
+    if (open) {
+      open.status = 'canceled'
+      save()
+    }
+    order = {
+      id: `o-${crypto.randomUUID().slice(0, 8)}`,
+      userId: req.user.id,
+      plan: req.body.plan,
+      amountRial: plan.priceRial,
+      status: 'pending',
+      createdAt: Date.now(),
+      expiresAt: Date.now() + ORDER_TTL,
+    }
+    getDb().orders.push(order)
+    save()
   }
-  getDb().orders.push(order)
-  save()
 
   try {
     const payUrl = await bale.payUrlFor(order.id)
@@ -386,11 +489,21 @@ app.post('/api/payment/order', auth, async (req, res) => {
 app.get('/api/payment/order/:orderId', auth, (req, res) => {
   const order = getDb().orders.find((o) => o.id === req.params.orderId && o.userId === req.user.id)
   if (!order) return res.status(404).json({ error: 'سفارش یافت نشد' })
-  if (orderExpired(order)) {
-    order.status = 'expired'
-    save()
-  }
+  markExpired(order)
   res.json({ orderId: order.id, status: order.status, plan: order.plan, user: publicUser(req.user) })
+})
+
+// user's latest open order — lets them resume payment after returning to the app mid-flow
+app.get('/api/payment/pending', auth, async (req, res) => {
+  const order = [...getDb().orders].reverse().find((o) => o.userId === req.user.id && o.status === 'pending')
+  if (!order || markExpired(order)) return res.json({ order: null })
+  let payUrl = null
+  try {
+    payUrl = await bale.payUrlFor(order.id)
+  } catch (e) {
+    console.error('Bale payUrl error:', e)
+  }
+  res.json({ order: { orderId: order.id, plan: order.plan, status: order.status, payUrl } })
 })
 
 const fulfillOrder = (order, payment) => {
@@ -410,7 +523,7 @@ async function handleBaleUpdate(update) {
     if (update.pre_checkout_query) {
       const q = update.pre_checkout_query
       const order = getDb().orders.find((o) => o.id === q.invoice_payload)
-      const ok = order && order.status === 'pending' && !orderExpired(order) && q.total_amount === order.amountRial
+      const ok = order && order.status === 'pending' && !markExpired(order) && q.total_amount === order.amountRial
       await bale.answerPreCheckoutQuery(q.id, !!ok, 'سفارش نامعتبر یا منقضی شده است')
       return
     }
@@ -422,8 +535,10 @@ async function handleBaleUpdate(update) {
     if (msg.successful_payment) {
       const pay = msg.successful_payment
       const order = getDb().orders.find((o) => o.id === pay.invoice_payload)
+      // expiry is not a gate here: pre_checkout already validated the order and if money
+      // moved (even moments past TTL) the subscription must activate — canceled/paid excluded
       const valid =
-        order && order.status === 'pending' && !orderExpired(order) &&
+        order && (order.status === 'pending' || order.status === 'expired') &&
         (pay.currency == null || pay.currency === 'IRR') &&
         (pay.total_amount == null || pay.total_amount === order.amountRial)
       if (valid) {
@@ -439,7 +554,7 @@ async function handleBaleUpdate(update) {
     if (typeof msg.text === 'string' && msg.text.startsWith('/start pay_')) {
       const orderId = msg.text.slice('/start pay_'.length).trim().split(/\s/)[0]
       const order = getDb().orders.find((o) => o.id === orderId)
-      if (!order || order.status !== 'pending' || orderExpired(order)) {
+      if (!order || order.status !== 'pending' || markExpired(order)) {
         await bale.sendMessage(msg.chat.id, 'سفارش نامعتبر است یا قبلاً پرداخت شده است.')
         return
       }
@@ -496,7 +611,7 @@ const questionsForAny = (exam) =>
 // ---------- پیول (اشتراک) ----------
 // رایگان: کوییز روزانه + آزمون تک‌درس آمادهٔ هر درس (s-*) + اولین آزمون جامع هر کاربر
 // آزمون رایگان امتحانی با ثبت اولین نتیجهٔ آزمون غیر تک‌درس (section === 'all') مصرف می‌شود
-// پولی: بقیهٔ آزمون‌های جامع، آزمون فدراسیون و آزمون‌ساز
+// پولی: بقیهٔ آزمون‌های جامع، آزمون آزمایشی و آزمون‌ساز
 const subActiveFor = (u) => !!u.subscription && u.subscription.until > Date.now()
 const isFreeExam = (exam) => exam.type === 'single'
 const freeExamUsed = (u) => getDb().attempts.some((a) => a.userId === u.id && a.section === 'all')
@@ -508,7 +623,7 @@ app.get('/api/exams', auth, (req, res) => {
   res.json(exams.map((exam) => ({ ...shapeExam(exam, questionsForExam(exam)), locked: examLocked(exam, req.user), trial: isTrialExam(exam, req.user) })))
 })
 
-// ساخت آزمون به قالب درجه ۳ فدراسیون — فعلاً فقط تخصصی بدنسازی و فیتنس
+// ساخت آزمون به قالب آزمون کتبی تخصصی — فعلاً فقط تخصصی بدنسازی و فیتنس
 const DISCIPLINES = { bodybuilding: 'بدنسازی', fitness: 'فیتنس' }
 const GENDER_TITLES = { men: 'آقایان', women: 'بانوان' }
 
@@ -544,7 +659,7 @@ app.post('/api/exams/generate', auth, (req, res) => {
     description:
       mode === 'single'
         ? `۵ سوال تصادفی ${sec.title}، در قالب آزمون درجه ۳ ${disc} ${gTitle}`
-        : `۳۰ سوال بلوکی از دروس تخصصی ${disc} (۵ سوال از هر درس)، در قالب آزمون کتبی درجه ۳ فدراسیون`,
+        : `۳۰ سوال بلوکی از دروس تخصصی ${disc} (۵ سوال از هر درس)، در قالب آزمون کتبی تخصصی مربیگری`,
     timeMinutes: mode === 'single' ? 10 : 33,
     ...(() => {
       const gen = generateExamSlots(mode, sectionId, discipline, gender)
@@ -778,7 +893,7 @@ app.get('/api/leaderboard', auth, (req, res) => {
     rows.set(a.userId, r)
   }
   const list = [...rows.values()]
-    .map((r) => ({ ...r, name: usersById.get(r.userId)?.name || 'کاربر' }))
+    .map((r) => ({ ...r, name: usersById.get(r.userId)?.name || 'کاربر', avatar: avatarUrl(usersById.get(r.userId)) }))
     .sort((x, y) => y.points - x.points || y.best - x.best || x.userId.localeCompare(y.userId))
   const meIdx = list.findIndex((r) => r.userId === req.user.id)
   res.json({
@@ -839,6 +954,28 @@ app.get('/api/feedback/mine', auth, (req, res) => {
   res.json({ list })
 })
 
+app.put('/api/feedback/:id', auth, (req, res) => {
+  const f = getDb().feedback.find((x) => x.id === req.params.id && x.userId === req.user.id)
+  if (!f) return res.status(404).json({ error: 'نظر یافت نشد' })
+  const text = String(req.body.text || '').trim()
+  const rating = Math.min(5, Math.max(1, Number(req.body.rating) || 0))
+  if (text.length < 3) return res.status(400).json({ error: 'متن نظر باید حداقل ۳ حرف باشد' })
+  f.text = text.slice(0, 1500)
+  f.rating = rating
+  f.updatedAt = Date.now()
+  save()
+  res.json({ feedback: f })
+})
+
+app.delete('/api/feedback/:id', auth, (req, res) => {
+  const db = getDb()
+  const i = db.feedback.findIndex((f) => f.id === req.params.id && f.userId === req.user.id)
+  if (i === -1) return res.status(404).json({ error: 'نظر یافت نشد' })
+  db.feedback.splice(i, 1)
+  save()
+  res.json({ ok: true })
+})
+
 app.get('/api/admin/feedback', auth, adminOnly, (req, res) => {
   const list = [...getDb().feedback].sort((a, b) => b.createdAt - a.createdAt).slice(0, 100)
   res.json({ list })
@@ -874,6 +1011,29 @@ app.get('/api/admin/overview', auth, adminOnly, (req, res) => {
     feedback: db.feedback.length,
     announcements: db.announcements.length,
   })
+})
+
+// ساخت دستی کاربر توسط مدیر — مثلاً ثبت‌نام حضوری؛ شمارهٔ تکراری کاربر موجود را برمی‌گرداند
+app.post('/api/admin/users', auth, adminOnly, (req, res) => {
+  const name = String(req.body?.name || '').trim()
+  const phone = normalizePhone(req.body?.phone)
+  const password = String(req.body?.password || '')
+  if (!name) return res.status(400).json({ error: 'نام الزامی است' })
+  if (!isValidPhone(phone)) return res.status(400).json({ error: 'شماره موبایل نامعتبر است. مثال: 09123456789' })
+  if (password && password.length < 4) return res.status(400).json({ error: 'رمز عبور باید حداقل ۴ کاراکتر باشد' })
+  const db = getDb()
+  const dup = db.users.find((u) => u.phone === phone)
+  if (dup) return res.status(200).json({ user: publicUser(dup), existed: true })
+  const user = {
+    id: crypto.randomUUID(),
+    name,
+    phone,
+    ...(password ? { password: hashPassword(password) } : {}),
+    createdAt: Date.now(),
+  }
+  db.users.push(user)
+  save()
+  res.json({ user: publicUser(user), existed: false })
 })
 
 app.get('/api/admin/users', auth, adminOnly, (req, res) => {
@@ -951,7 +1111,7 @@ app.get('/api/admin/users/:id', auth, adminOnly, (req, res) => {
   if (!u) return res.status(404).json({ error: 'کاربر یافت نشد' })
   const ats = db.attempts.filter((a) => a.userId === u.id).sort((a, b) => b.createdAt - a.createdAt)
   res.json({
-    user: { ...publicUser(u), createdAt: u.createdAt, gender: u.gender ?? null, note: u.note ?? '' },
+    user: { ...publicUser(u), createdAt: u.createdAt, note: u.note ?? '' },
     stats: {
       attempts: ats.length,
       avgScore: ats.length ? Math.round(ats.reduce((s, a) => s + a.score, 0) / ats.length) : 0,
@@ -999,6 +1159,24 @@ app.patch('/api/admin/users/:id', auth, adminOnly, (req, res) => {
   res.json({ user: publicUser(u) })
 })
 
+// حذف کامل کاربر — حساب، نشست‌ها، تلاش‌ها، آزمون‌های ساخته‌شده، نظرها و عکس پروفایل پاک می‌شود.
+// سفارش‌ها نگه‌داری می‌شوند تا سوابق مالی/درآمد از بین نرود (نام کاربر در لیست سفارش‌ها «—» می‌شود)
+app.delete('/api/admin/users/:id', auth, adminOnly, (req, res) => {
+  const db = getDb()
+  const u = db.users.find((x) => x.id === req.params.id)
+  if (!u) return res.status(404).json({ error: 'کاربر یافت نشد' })
+  if (u.admin) return res.status(400).json({ error: 'حذف حساب مدیر مجاز نیست' })
+  db.users = db.users.filter((x) => x.id !== u.id)
+  db.sessions = db.sessions.filter((s) => s.userId !== u.id)
+  db.attempts = db.attempts.filter((a) => a.userId !== u.id)
+  db.generated = db.generated.filter((g) => g.userId !== u.id && g.createdBy !== u.id)
+  db.feedback = db.feedback.filter((f) => f.userId !== u.id)
+  db.otps = db.otps.filter((o) => o.phone !== u.phone)
+  removeAvatarFiles(u.id)
+  save()
+  res.json({ ok: true })
+})
+
 // ابطال همهٔ نشست‌های کاربر — خروج اجباری (مثلاً وقتی اکانت مشکوک است)
 app.post('/api/admin/users/:id/revoke-sessions', auth, adminOnly, (req, res) => {
   const db = getDb()
@@ -1027,32 +1205,57 @@ app.patch('/api/admin/orders/:id', auth, adminOnly, async (req, res) => {
   res.json({ order })
 })
 
-// متریک‌های ۳۰ روز اخیر: ثبت‌نام/آزمون/درآمد روزانه + قیف تبدیل — برای چارت‌های داشبرد
+// متریک‌های ۳۰ روز اخیر: ثبت‌نام/آزمون/درآمد روزانه + کاربران فعال + توزیع‌ها + قیف تبدیل — برای چارت‌های داشبرد
 app.get('/api/admin/metrics', auth, adminOnly, (req, res) => {
   const db = getDb()
   const days = 30
   const today = tehranDay(Date.now())
   const bucket = () => Array.from({ length: days }, (_, i) => ({ day: today - days + 1 + i, v: 0 }))
   const signups = bucket(), attempts = bucket(), revenue = bucket(), ordersDay = bucket()
+  const dayIdx = (ts) => tehranDay(ts) - (today - days + 1)
   const push = (arr, ts, v = 1) => {
-    const d = tehranDay(ts)
-    const i = d - (today - days + 1)
+    const i = dayIdx(ts)
     if (i >= 0 && i < days) arr[i].v += v
   }
-  for (const u of db.users) if (!u.admin) push(signups, u.createdAt)
-  for (const a of db.attempts) push(attempts, a.createdAt)
+  const real = db.users.filter((u) => !u.admin)
+  const realIds = new Set(real.map((u) => u.id))
+  const realAttempts = db.attempts.filter((a) => realIds.has(a.userId))
+  const dauSets = Array.from({ length: days }, () => new Set())
+  for (const u of real) push(signups, u.createdAt)
+  for (const a of realAttempts) {
+    push(attempts, a.createdAt)
+    const i = dayIdx(a.createdAt)
+    if (i >= 0 && i < days) dauSets[i].add(a.userId)
+  }
   for (const o of db.orders) {
     push(ordersDay, o.createdAt)
     if (o.status === 'paid') push(revenue, o.createdAt, o.amountRial)
   }
-  const real = db.users.filter((u) => !u.admin)
+  // توزیع نمرات + پرتکرارترین آزمون‌ها + سگمنت اشتراک/جنسیت — برای نمودارهای داشبرد
+  const scoreDist = [0, 0, 0, 0] // <۴۰ / ۴۰-۵۹ / ۶۰-۷۹ / ≥۸۰
+  const byExam = new Map()
+  for (const a of realAttempts) {
+    scoreDist[a.score >= 80 ? 3 : a.score >= 60 ? 2 : a.score >= 40 ? 1 : 0]++
+    byExam.set(a.examId, (byExam.get(a.examId) || 0) + 1)
+  }
+  const subSplit = { active: 0, expired: 0, none: 0 }
+  for (const u of real) {
+    if (!u.subscription) subSplit.none++
+    else if (u.subscription.until > Date.now()) subSplit.active++
+    else subSplit.expired++
+  }
   const engaged = real.filter((u) => db.attempts.some((a) => a.userId === u.id))
   res.json({
     days: signups.map((b) => b.day),
     signups: signups.map((b) => b.v),
     attempts: attempts.map((b) => b.v),
+    dau: dauSets.map((s) => s.size),
     revenue: revenue.map((b) => Math.round(b.v / 10)), // تومان
     ordersPerDay: ordersDay.map((b) => b.v),
+    scoreDist,
+    subSplit,
+    topExams: [...byExam.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6)
+      .map(([id, n]) => ({ title: examTitleOf(id), n })),
     funnel: {
       registered: real.length,
       engaged: engaged.length,

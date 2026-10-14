@@ -142,8 +142,11 @@ try {
     check('register → token+user', r.status === 200 && r.data.token && r.data.user?.phone === phone, JSON.stringify(r.data))
     token = r.data.token
     userId = r.data.user?.id
-    r = await req('POST', '/register', { body: { name: 'x', phone, password: '1234' } })
-    check('register تکراری → 409', r.status === 409, `status=${r.status}`)
+    // شمارهٔ تکراری = ورود به همان حساب (نه ثبت‌نام دوباره و نه ۴۰۹)
+    r = await req('POST', '/register', { body: { name: 'اسم جدید', phone, password: '1234' } })
+    check('register تکراری + رمز درست → ورود و آپدیت نام', r.status === 200 && r.data.user?.id === userId && r.data.user?.name === 'اسم جدید', JSON.stringify(r.data))
+    r = await req('POST', '/register', { body: { name: 'x', phone, password: 'bad!' } })
+    check('register تکراری + رمز غلط → 401', r.status === 401, `status=${r.status}`)
     r = await req('POST', '/register', { body: { name: 'x', phone: '09120000001', password: '12' } })
     check('register رمز کوتاه → 400', r.status === 400, `status=${r.status}`)
     r = await req('POST', '/login', { body: { phone, password: 'wrong' } })
@@ -421,6 +424,16 @@ try {
     check('PATCH user → نام تغییر کرد', r.status === 200 && r.data.user?.name === 'تست فلو ۲')
     r = await req('PATCH', `/admin/users/${userId}`, { token: at, body: { phone: '1111' } })
     check('PATCH phone نامعتبر → 400', r.status === 400)
+    // ساخت دستی کاربر توسط مدیر — شمارهٔ تکراری کاربر موجود را برمی‌گرداند
+    const newPhone = '0917' + String(Math.floor(Math.random() * 9e6)).padStart(7, '0')
+    r = await req('POST', '/admin/users', { token: at, body: { name: 'کاربر ادمین‌ساخته', phone: newPhone } })
+    check('admin POST /users → ساخت کاربر', r.status === 200 && r.data.user?.phone === newPhone && r.data.existed === false)
+    r = await req('POST', '/admin/users', { token: at, body: { name: 'اسم دیگر', phone: newPhone } })
+    check('admin POST /users تکراری → existed بدون حساب جدید', r.status === 200 && r.data.existed === true)
+    r = await req('POST', '/admin/users', { token: at, body: { name: 'x', phone: '123' } })
+    check('admin POST /users شماره بد → 400', r.status === 400)
+    r = await req('POST', '/admin/users', { token, body: { name: 'x', phone: '09176665545' } })
+    check('admin POST /users کاربر عادی → 403', r.status === 403)
     r = await req('GET', '/admin/metrics', { token: at })
     check('/admin/metrics → funnel + سری ۳۰ روزه', r.status === 200 && r.data.funnel && r.data.signups?.length === 30, `status=${r.status}`)
     const csv = await fetch(`${BASE}/admin/export/users.csv`, { headers: { authorization: `Bearer ${at}` } })
@@ -432,6 +445,21 @@ try {
     if (ord.status === 200 && ord.data.orderId) {
       const oc = await req('PATCH', `/admin/orders/${ord.data.orderId}`, { token: at, body: { status: 'canceled' } })
       check('PATCH order → canceled', oc.status === 200 && oc.data.order?.status === 'canceled')
+      const noPend = await req('GET', '/payment/pending', { token })
+      check('GET /payment/pending → بعد از لغو خالی', noPend.status === 200 && noPend.data.order === null)
+      // one open order per user: same plan resumes, a different plan replaces it
+      const o1 = await req('POST', '/payment/order', { token, body: { plan: 'monthly' } })
+      if (o1.status === 200 && o1.data.orderId) {
+        const pend = await req('GET', '/payment/pending', { token })
+        check('GET /payment/pending → سفارش باز برمی‌گردد', pend.status === 200 && pend.data.order?.orderId === o1.data.orderId)
+        const same = await req('POST', '/payment/order', { token, body: { plan: 'monthly' } })
+        check('POST order همان پلن → بازیابی همان سفارش', same.status === 200 && same.data.orderId === o1.data.orderId)
+        const o2 = await req('POST', '/payment/order', { token, body: { plan: 'quarterly' } })
+        check('POST order پلن متفاوت → سفارش جدید', o2.status === 200 && o2.data.orderId !== o1.data.orderId)
+        const prev = await req('GET', `/payment/order/${o1.data.orderId}`, { token })
+        check('سفارش قبلی لغو شده', prev.data.status === 'canceled')
+        await req('PATCH', `/admin/orders/${o2.data.orderId}`, { token: at, body: { status: 'canceled' } })
+      }
     }
     // ثبت‌نام با شماره نامعتبر/ادمینی ممنوع است
     r = await req('POST', '/register', { body: { name: 'x', phone: '1111', password: '9999' } })

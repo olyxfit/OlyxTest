@@ -1,4 +1,4 @@
-// منطق مشترک آزمون فدراسیون — بدون وابستگی به Node؛
+// منطق مشترک آزمون کتبی تخصصی — بدون وابستگی به Node؛
 // هم در سرور (server/questions.js) و هم در بک‌اند دموی کلاینت استفاده می‌شود.
 export function createExamModel(bank) {
   const faNum = (n) => Number(n).toLocaleString('fa-IR')
@@ -16,14 +16,14 @@ export function createExamModel(bank) {
   const seededShuffle = (arr, rng) => [...arr].sort(() => rng() - 0.5)
   const EXAM_SEED = 0x4f4c5958 // 'OLYX'
 
-  // ---------- رشته‌های آزمون فدراسیون ----------
+  // ---------- رشته‌های آزمون کتبی ----------
   // فعلاً فقط آزمون کتبی تخصصی درجه ۳: بدنسازی و فیتنس
   const sectionGroups = [
     { id: 'bodybuilding', title: 'بدنسازی', subtitle: 'آزمون کتبی تخصصی درجه ۳' },
     { id: 'fitness', title: 'فیتنس', subtitle: 'آزمون کتبی تخصصی درجه ۳' },
   ]
 
-  // ---------- درس‌های آزمون فدراسیون (۲۹ آیتم) ----------
+  // ---------- درس‌های آزمون کتبی (۲۹ آیتم) ----------
   const sections = [
     // تئوری عمومی — ۱۵ آیتم (مشترک بدنسازی و فیتنس)
     { id: 'g-mabani', group: 'general', title: 'اصول و مبانی تربیت بدنی', icon: 'landmark', color: 'indigo' },
@@ -42,7 +42,7 @@ export function createExamModel(bank) {
     { id: 'g-naqsh', group: 'general', title: 'نقش مربی', icon: 'users', color: 'slate' },
     { id: 'g-hoquq', group: 'general', title: 'حقوق ورزشی', icon: 'scale', color: 'teal' },
     // تخصصی بدنسازی — ۵ درس مشترک + درس جنسیتی (داوری: آقایان / فنی تخصصی: بانوان)
-    // ترتیب بلوک‌ها مطابق برگهٔ واقعی آزمون فدراسیون
+    // ترتیب بلوک‌ها مطابق آزمون کتبی واقعی
     { id: 'bb-taghzie', group: 'bodybuilding', title: 'تغذیه و مکمل‌های غذایی', icon: 'apple', color: 'emerald' },
     { id: 'bb-anatomy', group: 'bodybuilding', title: 'آناتومی وزنه‌تمرینی', icon: 'bone', color: 'rose' },
     { id: 'bb-physio', group: 'bodybuilding', title: 'فیزیولوژی', icon: 'activity', color: 'sky' },
@@ -93,7 +93,7 @@ export function createExamModel(bank) {
   const byId = new Map(questions.map((q) => [q.id, q]))
   const pool = (sid) => questions.filter((q) => q.topicIds.includes(sid) && !q.fed)
 
-  // نمونه‌گیری به قالب برگهٔ آزمون فدراسیون: سهم مساوی از هر درس و چینش بلوکی
+  // نمونه‌گیری به قالب آزمون کتبی: سهم مساوی از هر درس و چینش بلوکی
   // به ترتیب درس‌ها؛ سوالات مشترک بین درس‌ها فقط یک‌بار می‌آیند (بدون تکرار).
   // خروجی: ids + نقشهٔ سوال←درسِ بلوک — برای انتساب درست در آمار آزمون‌های تولیدی
   // (سوال مشترک بین چند درس باید زیر درسی شمرده شود که بلوکش آمده نه تاپیک اولش)
@@ -181,7 +181,7 @@ export function createExamModel(bank) {
           gender,
           series: i + 1,
           title: `آزمون جامع ${g.title} ${GENDERS[gender]} — سری ${faNum(i + 1)}`,
-          description: `${faNum(list.length)} سوال از دروس تخصصی ${g.title} (${faNum(PER_LESSON_Q)} سوال از هر درس) — قالب آزمون کتبی درجه ۳ فدراسیون`,
+          description: `${faNum(list.length)} سوال از دروس تخصصی ${g.title} (${faNum(PER_LESSON_Q)} سوال از هر درس) — قالب آزمون کتبی تخصصی مربیگری`,
           timeMinutes: Math.round(list.length * 1.1),
           questionIds: list,
         })
@@ -189,14 +189,14 @@ export function createExamModel(bank) {
     }
   }
 
-  // آزمون آزمایشی فدراسیون — سوالات واقعی ادوار گذشته
+  // آزمون آزمایشی کتبی — سوالات واقعی ادوار گذشته
   const fedQuestions = questions.filter((q) => q.fed)
   if (fedQuestions.length) {
     exams.push({
       id: 'fed1',
       type: 'federation',
-      title: 'آزمون آزمایشی فدراسیون',
-      description: `${faNum(fedQuestions.length)} سوال واقعی ادوار گذشته آزمون تئوری مربیگری`,
+      title: 'آزمون آزمایشی کتبی تخصصی',
+      description: `${faNum(fedQuestions.length)} سوال واقعی ادوار گذشته آزمون کتبی مربیگری`,
       timeMinutes: Math.round(fedQuestions.length * 1.1),
       questionIds: fedQuestions.map((q) => q.id),
     })
@@ -224,7 +224,7 @@ export function createExamModel(bank) {
     return []
   }
 
-  // آزمون تصادفی به قالب درجه ۳ فدراسیون: تک‌درس = ۵ سوال،
+  // آزمون تصادفی به قالب آزمون کتبی درجه ۳: تک‌درس = ۵ سوال،
   // جامع = ۶ درس × ۵ سوال = ۳۰ سوال بلوکی (درس ششم بسته به جنسیت: داوری/فنی تخصصی).
   // generateExamSlots علاوه بر ids، نقشهٔ سوال←درس هم می‌دهد تا در آزمون ذخیره شود.
   const generateExamSlots = (mode, sectionId, discipline, gender = 'men') => {
