@@ -3,13 +3,14 @@ import crypto from 'node:crypto'
 import path from 'node:path'
 import fs from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { getDb, save } from './db.js'
+import { getDb, save, initDb, refreshDb, putAvatar, getAvatar, removeAvatar } from './db.js'
 import * as bale from './bale.js'
-import { sendVerificationSms } from './sms.js'
 import { exams, sections, specializedSectionsFor, questions, questionsForExam, generateExamSlots, isSingleExam, effectiveSectionId, shapeExam } from './questions.js'
 import { FAKE_USERS, fakeLeaderboardAttempts, isTestUser } from '../shared/fake-leaderboard.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+// با DATABASE_URL داده‌ها در Postgres، وگرنه در data/db.json نگه‌داری می‌شوند
+await initDb()
 const app = express()
 const PORT = process.env.PORT || 3001
 
@@ -51,7 +52,7 @@ const hashPassword = (password, salt = crypto.randomBytes(16).toString('hex')) =
   return `${salt}:${hash}`
 }
 const verifyPassword = (password, stored) => {
-  // کاربران OTP فیلد password ندارند — به‌جای کرش ۵۰۰، عدم تطابق برمی‌گردانیم
+  // حساب‌های قدیمی بدون رمز (OTP) فیلد password ندارند — به‌جای کرش ۵۰۰، عدم تطابق برمی‌گردانیم
   if (typeof stored !== 'string' || !stored.includes(':')) return false
   try {
     const [salt, hash] = stored.split(':')
@@ -151,7 +152,7 @@ function adminOnly(req, res, next) {
     })
     save()
   } else if (!seed.admin) {
-    // فقط سید اصلی ادمین می‌شود؛ register با isValidPhone ساخت کاربر ۱۱۱۱ را ممنوع کرده
+    // فقط سید اصلی ادمین می‌شود؛ register با isValidUsername ساخت کاربر ۱۱۱۱ را ممنوع کرده
     seed.admin = true
     save()
   }
@@ -159,23 +160,33 @@ function adminOnly(req, res, next) {
 }
 
 // ---------- auth routes ----------
+// نام کاربری همان فیلد phone در دیتابیس است — بدون نیاز به شماره موبایل واقعی یا پیامک
+const FA_DIGITS = '۰۱۲۳۴۵۶۷۸۹'
+const AR_DIGITS = '٠١٢٣٤٥٦٧٨٩'
+const normalizeUsername = (raw) =>
+  String(raw || '')
+    .replace(/[۰-۹]/g, (d) => String(FA_DIGITS.indexOf(d)))
+    .replace(/[٠-٩]/g, (d) => String(AR_DIGITS.indexOf(d)))
+    .trim()
+const isValidUsername = (u) => /^\S{3,40}$/.test(u)
+
 app.post('/api/register', (req, res) => {
   const { name, password } = req.body || {}
-  const phone = normalizePhone(req.body?.phone)
+  const phone = normalizeUsername(req.body?.phone)
   if (!name?.trim() || !phone || !password)
-    return res.status(400).json({ error: 'نام، شماره موبایل و رمز عبور الزامی است' })
-  if (!isValidPhone(phone))
-    return res.status(400).json({ error: 'شماره موبایل نامعتبر است. مثال: 09123456789' })
+    return res.status(400).json({ error: 'نام، نام کاربری و رمز عبور الزامی است' })
+  if (!isValidUsername(phone))
+    return res.status(400).json({ error: 'نام کاربری باید ۳ تا ۴۰ کاراکتر بدون فاصله باشد' })
   if (password.length < 4)
     return res.status(400).json({ error: 'رمز عبور باید حداقل ۴ کاراکتر باشد' })
   const db = getDb()
   const existing = db.users.find((u) => u.phone === phone)
   if (existing) {
-    // شمارهٔ تکراری = ورود، نه ثبت‌نام دوباره. حساب‌های OTP فاقد رمزند — باید با کد وارد شوند
+    // نام کاربری تکراری = ورود، نه ثبت‌نام دوباره. حساب‌های قدیمی OTP فاقد رمزند — مدیر باید رمز بگذارد
     if (!existing.password)
-      return res.status(409).json({ error: 'این شماره قبلاً ثبت‌نام شده است — با «کد تایید پیامکی» وارد شوید', code: 'USE_OTP' })
+      return res.status(409).json({ error: 'این نام کاربری قبلاً ثبت شده و رمز ندارد — با پشتیبانی تماس بگیرید', code: 'NO_PASSWORD' })
     if (!verifyPassword(password, existing.password))
-      return res.status(401).json({ error: 'این شماره قبلاً ثبت‌نام شده و رمز واردشده درست نیست', code: 'WRONG_PASSWORD' })
+      return res.status(401).json({ error: 'این نام کاربری قبلاً ثبت شده و رمز واردشده درست نیست', code: 'WRONG_PASSWORD' })
     // نام جدید ارسالی (اگر متفاوت باشد) روی همان حساب اعمال می‌شود
     const newName = name.trim()
     if (newName !== existing.name) existing.name = newName
@@ -199,10 +210,10 @@ app.post('/api/register', (req, res) => {
 
 app.post('/api/login', (req, res) => {
   const { password } = req.body || {}
-  const phone = normalizePhone(req.body?.phone)
+  const phone = normalizeUsername(req.body?.phone)
   const user = getDb().users.find((u) => u.phone === phone)
   if (!user || !verifyPassword(password || '', user.password))
-    return res.status(401).json({ error: 'شماره موبایل یا رمز عبور اشتباه است' })
+    return res.status(401).json({ error: 'نام کاربری یا رمز عبور اشتباه است' })
   const token = newSession(getDb(), user.id)
   save()
   res.json({ token, user: publicUser(user) })
@@ -210,7 +221,7 @@ app.post('/api/login', (req, res) => {
 
 app.get('/api/me', auth, (req, res) => res.json({ user: publicUser(req.user) }))
 
-// ویرایش اطلاعات خود کاربر — نام و موبایل (موبایل = هویت ورود است؛ باید یکتا بماند)
+// ویرایش اطلاعات خود کاربر — نام و نام کاربری (نام کاربری = هویت ورود است؛ باید یکتا بماند)
 app.patch('/api/me', auth, (req, res) => {
   const u = req.user
   if (req.body?.name != null) {
@@ -219,11 +230,11 @@ app.patch('/api/me', auth, (req, res) => {
     u.name = name
   }
   if (req.body?.phone != null) {
-    const phone = normalizePhone(req.body.phone)
-    if (!isValidPhone(phone))
-      return res.status(400).json({ error: 'شماره موبایل نامعتبر است. مثال: 09123456789' })
+    const phone = normalizeUsername(req.body.phone)
+    if (!isValidUsername(phone))
+      return res.status(400).json({ error: 'نام کاربری باید ۳ تا ۴۰ کاراکتر بدون فاصله باشد' })
     if (getDb().users.some((x) => x.id !== u.id && x.phone === phone))
-      return res.status(409).json({ error: 'این شماره برای کاربر دیگری ثبت شده است' })
+      return res.status(409).json({ error: 'این نام کاربری برای کاربر دیگری ثبت شده است' })
     u.phone = phone
   }
   save()
@@ -231,31 +242,16 @@ app.patch('/api/me', auth, (req, res) => {
 })
 
 // ---------- عکس پروفایل ----------
-// کلاینت عکس را روی canvas کراپ/کوچک و به‌صورت data URL می‌فرستد؛ فایل روی دیسک در data/avatars نگه‌داری می‌شود
-const AVATAR_DIR = path.join(__dirname, 'data', 'avatars')
-const AVATAR_EXT = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' }
-const avatarFileOf = (userId) => {
-  try {
-    const f = fs.readdirSync(AVATAR_DIR).find((x) => x.startsWith(`${userId}.`))
-    return f ? path.join(AVATAR_DIR, f) : null
-  } catch {
-    return null
-  }
-}
-const removeAvatarFiles = (userId) => {
-  const f = avatarFileOf(userId)
-  if (f) fs.unlinkSync(f)
-}
-
-app.get('/api/avatar/:userId', (req, res) => {
+// کلاینت عکس را روی canvas کراپ/کوچک و به‌صورت data URL می‌فرستد؛ با DATABASE_URL در جدول avatars وگرنه فایل در data/avatars
+app.get('/api/avatar/:userId', async (req, res) => {
   const u = getDb().users.find((x) => x.id === req.params.userId)
-  const file = u?.avatarAt ? avatarFileOf(u.id) : null
-  if (!file) return res.sendStatus(404)
+  const av = u?.avatarAt ? await getAvatar(u.id) : null
+  if (!av) return res.sendStatus(404)
   res.setHeader('Cache-Control', 'private, max-age=300')
-  res.sendFile(file)
+  res.type(av.mime).send(av.data)
 })
 
-app.put('/api/me/avatar', auth, (req, res) => {
+app.put('/api/me/avatar', auth, async (req, res) => {
   const m = /^data:(image\/(?:jpeg|png|webp));base64,([a-zA-Z0-9+/=\s]+)$/.exec(String(req.body?.dataUrl || ''))
   if (!m) return res.status(400).json({ error: 'فرمت عکس نامعتبر است' })
   const buf = Buffer.from(m[2].replace(/\s/g, ''), 'base64')
@@ -268,16 +264,14 @@ app.put('/api/me/avatar', auth, (req, res) => {
     : buf.length > 12 && buf.subarray(0, 4).toString('ascii') === 'RIFF' && buf.subarray(8, 12).toString('ascii') === 'WEBP' ? 'image/webp'
     : null
   if (!sniffed || sniffed !== m[1]) return res.status(400).json({ error: 'فرمت عکس نامعتبر است' })
-  fs.mkdirSync(AVATAR_DIR, { recursive: true })
-  removeAvatarFiles(req.user.id)
-  fs.writeFileSync(path.join(AVATAR_DIR, `${req.user.id}.${AVATAR_EXT[sniffed]}`), buf)
+  await putAvatar(req.user.id, sniffed, buf)
   req.user.avatarAt = Date.now()
   save()
   res.json({ user: publicUser(req.user) })
 })
 
-app.delete('/api/me/avatar', auth, (req, res) => {
-  removeAvatarFiles(req.user.id)
+app.delete('/api/me/avatar', auth, async (req, res) => {
+  await removeAvatar(req.user.id)
   delete req.user.avatarAt
   save()
   res.json({ user: publicUser(req.user) })
@@ -295,138 +289,6 @@ app.post('/api/logout', auth, (req, res) => {
   db.sessions = db.sessions.filter((s) => s.token !== token)
   save()
   res.json({ ok: true })
-})
-
-// ---------- OTP auth ورود و ثبت‌نام با کد پیامکی ----------
-const OTP_TTL = 2 * 60 * 1000 // اعتبار کد: ۲ دقیقه
-const OTP_COOLDOWN = 60 * 1000 // فاصله مجاز بین درخواست‌ها: ۶۰ ثانیه
-const OTP_MAX_ATTEMPTS = 5
-const SMS_WAIT = 2500 // حداکثر صبر برای پاسخ سرویس پیامک؛ بیشتر از این در پس‌زمینه ادامه می‌یابد
-const FA_DIGITS = '۰۱۲۳۴۵۶۷۸۹'
-const AR_DIGITS = '٠١٢٣٤٥٦٧٨٩'
-
-const normalizePhone = (raw) => {
-  let s = String(raw || '')
-    .replace(/[۰-۹]/g, (d) => String(FA_DIGITS.indexOf(d)))
-    .replace(/[٠-٩]/g, (d) => String(AR_DIGITS.indexOf(d)))
-    .replace(/\D/g, '')
-  if (s.startsWith('0098')) s = '0' + s.slice(4)
-  else if (s.startsWith('98') && s.length === 12) s = '0' + s.slice(2)
-  else if (s.startsWith('9') && s.length === 10) s = '0' + s
-  return s
-}
-const isValidPhone = (p) => /^09\d{9}$/.test(p)
-const hashOtp = (code, salt) =>
-  crypto.createHash('sha256').update(`${salt}:${code}`).digest('hex')
-const normalizeCode = (raw) =>
-  String(raw || '')
-    .replace(/[۰-۹]/g, (d) => String(FA_DIGITS.indexOf(d)))
-    .replace(/[٠-٩]/g, (d) => String(AR_DIGITS.indexOf(d)))
-    .replace(/\D/g, '')
-    .trim()
-
-app.post('/api/otp/request', async (req, res) => {
-  const phone = normalizePhone(req.body?.phone)
-  if (!isValidPhone(phone))
-    return res.status(400).json({ error: 'شماره موبایل نامعتبر است. مثال: 09123456789' })
-
-  const db = getDb()
-  const now = Date.now()
-  db.otps = db.otps.filter((o) => now - o.createdAt <= OTP_TTL)
-  const prev = db.otps.find((o) => o.phone === phone)
-  if (prev && now - prev.createdAt < OTP_COOLDOWN) {
-    const wait = Math.ceil((OTP_COOLDOWN - (now - prev.createdAt)) / 1000)
-    return res.status(429).json({ error: `کد تایید قبلاً ارسال شده است. ${wait} ثانیه دیگر تلاش کنید`, retryAfter: wait })
-  }
-
-  const code = String(crypto.randomInt(0, 10000)).padStart(4, '0')
-  const salt = crypto.randomBytes(8).toString('hex')
-  db.otps = db.otps.filter((o) => o.phone !== phone)
-  const entry = { phone, code: `${salt}:${hashOtp(code, salt)}`, attempts: 0, createdAt: now }
-  db.otps.push(entry)
-  save()
-
-  const removeOtp = () => {
-    db.otps = db.otps.filter((o) => o !== entry)
-    save()
-  }
-  const payload = () => ({
-    ok: true,
-    isNewUser: !db.users.some((u) => u.phone === phone),
-    expiresIn: OTP_TTL / 1000,
-  })
-
-  // پاسخ سریع: اگر سرویس پیامک کند بود، ارسال در پس‌زمینه ادامه می‌یابد تا
-  // کاربر منتظر API خارجی نماند؛ در شکستِ دیررس کد حذف می‌شود تا تلاش مجدد فوری باشد.
-  const send = sendVerificationSms(phone, code).then(
-    (result) => ({ result }),
-    (err) => ({ err }),
-  )
-  const outcome = await Promise.race([send, new Promise((r) => setTimeout(r, SMS_WAIT))])
-
-  if (!outcome) {
-    res.json(payload())
-    send.then(({ err }) => {
-      if (err) {
-        removeOtp()
-        console.error('SMS send failed (background):', err)
-      }
-    })
-    return
-  }
-  if (outcome.err) {
-    removeOtp()
-    console.error('SMS send failed:', outcome.err)
-    return res.status(502).json({ error: 'ارسال پیامک ناموفق بود. کمی بعد دوباره تلاش کنید' })
-  }
-  // وقتی کانال پیامک فعال نیست (KAVENEGAR_API_KEY ست نشده)، کد در خود اپ نمایش داده می‌شود
-  // تا ورود ممکن بماند؛ با فعال‌شدن پیامک این فیلد دیگر برنمی‌گردد
-  const { devCode } = outcome.result
-  res.json({ ...payload(), ...(devCode ? { devCode } : {}) })
-})
-
-app.post('/api/otp/verify', (req, res) => {
-  const phone = normalizePhone(req.body?.phone)
-  const code = normalizeCode(req.body?.code)
-  const db = getDb()
-  const otp = db.otps.find((o) => o.phone === phone)
-  if (!otp)
-    return res.status(400).json({ error: 'کدی برای این شماره ارسال نشده است. ابتدا درخواست کد دهید' })
-  if (Date.now() - otp.createdAt > OTP_TTL) {
-    db.otps = db.otps.filter((o) => o !== otp)
-    save()
-    return res.status(400).json({ error: 'کد تایید منقضی شده است. دوباره درخواست کنید', code: 'EXPIRED' })
-  }
-
-  const [salt, hash] = otp.code.split(':')
-  const match = hashOtp(code, salt) === hash
-  if (!match) {
-    otp.attempts = (otp.attempts || 0) + 1
-    if (otp.attempts >= OTP_MAX_ATTEMPTS) {
-      db.otps = db.otps.filter((o) => o !== otp)
-      save()
-      return res.status(400).json({ error: 'تعداد تلاش‌ها بیش از حد مجاز است. دوباره درخواست کد دهید', code: 'EXPIRED' })
-    }
-    save()
-    return res.status(400).json({ error: 'کد وارد شده اشتباه است' })
-  }
-
-  let user = db.users.find((u) => u.phone === phone)
-  const name = String(req.body?.name || '').trim()
-  if (!user) {
-    if (!name)
-      return res.status(400).json({ error: 'نام و نام خانوادگی الزامی است', code: 'NAME_REQUIRED' })
-    user = { id: crypto.randomUUID(), name, phone, createdAt: Date.now() }
-    db.users.push(user)
-  } else if (name && name !== user.name) {
-    // شمارهٔ ثبت‌شده + نام جدید: فقط وارد می‌شود و نام همان حساب به‌روز می‌شود
-    user.name = name.slice(0, 60)
-  }
-  db.otps = db.otps.filter((o) => o !== otp)
-
-  const token = newSession(db, user.id)
-  save()
-  res.json({ token, user: publicUser(user) })
 })
 
 // ---------- subscription ----------
@@ -538,13 +400,24 @@ const fulfillOrder = (order, payment) => {
   save()
 }
 
+// اگر سفارش در حافظه نبود یک‌بار از منبع ذخیره‌سازی تازه می‌خوانیم — سفارش ممکن است
+// روی instance دیگری با DB مشترک ساخته شده باشد
+const findOrder = async (id) => {
+  let o = getDb().orders.find((x) => x.id === id)
+  if (!o) {
+    await refreshDb()
+    o = getDb().orders.find((x) => x.id === id)
+  }
+  return o
+}
+
 // پردازش آپدیت‌های بله (مشترک بین وب‌هوک و پولینگ)
 async function handleBaleUpdate(update) {
   try {
     // تایید نهایی قبل از پرداخت — مهلت پاسخ ۱۰ ثانیه
     if (update.pre_checkout_query) {
       const q = update.pre_checkout_query
-      const order = getDb().orders.find((o) => o.id === q.invoice_payload)
+      const order = await findOrder(q.invoice_payload)
       const ok = order && order.status === 'pending' && !markExpired(order) && q.total_amount === order.amountRial
       await bale.answerPreCheckoutQuery(q.id, !!ok, 'این صورتحساب منقضی شده است؛ لینک پرداخت را دوباره باز کنید')
       return
@@ -556,7 +429,7 @@ async function handleBaleUpdate(update) {
     // پرداخت موفق — فعال‌سازی اشتراک؛ ارز و مبلغ هم دوباره با سفارش چک می‌شود
     if (msg.successful_payment) {
       const pay = msg.successful_payment
-      const order = getDb().orders.find((o) => o.id === pay.invoice_payload)
+      const order = await findOrder(pay.invoice_payload)
       // expiry is not a gate here: pre_checkout already validated the order and if money
       // moved (even moments past TTL) the subscription must activate — canceled/paid excluded
       const valid =
@@ -575,7 +448,7 @@ async function handleBaleUpdate(update) {
     // ورود کاربر با لینک عمیق — ارسال صورتحساب به چت
     if (typeof msg.text === 'string' && msg.text.startsWith('/start pay_')) {
       const orderId = msg.text.slice('/start pay_'.length).trim().split(/\s/)[0]
-      const order = getDb().orders.find((o) => o.id === orderId)
+      const order = await findOrder(orderId)
       if (order?.status === 'paid') {
         await bale.sendMessage(msg.chat.id, 'این سفارش قبلاً پرداخت شده است.')
         return
@@ -586,6 +459,7 @@ async function handleBaleUpdate(update) {
         target = order ? openOrCreateOrder(order.userId, order.plan) : null
       const plan = target && PLANS[target.plan]
       if (!plan) {
+        console.error('Bale /start pay_: order not resolvable:', orderId)
         await bale.sendMessage(msg.chat.id, 'سفارش نامعتبر است. از داخل اپلیکیشن دوباره درخواست پرداخت بدهید.')
         return
       }
@@ -612,8 +486,15 @@ app.post('/api/bale/webhook', (req, res) => {
 })
 
 // در حالت لوکال/بدون دامنه، آپدیت‌ها با پولینگ دریافت می‌شوند
+// اگر وب‌هوک ثبت شده باشد پولینگ انجام نمی‌دهیم — دو مصرف‌کنندهٔ هم‌زمان، آپدیت‌ها را
+// بین instanceها تقسیم می‌کنند و سفارش‌های instance دیگر «ناشناخته» می‌شوند
 if (bale.baleEnabled && process.env.BALE_POLLING !== '0') {
-  startBalePollingWrapper()
+  const hook = await bale.getWebhookInfo().catch(() => null)
+  if (hook?.url) {
+    console.error(`Bale webhook is registered (${hook.url}) — polling skipped. Remove it via app/scripts/bale-webhook.js del or set BALE_POLLING=0`)
+  } else {
+    startBalePollingWrapper()
+  }
 }
 function startBalePollingWrapper() {
   bale.startBalePolling(handleBaleUpdate, {
@@ -1043,13 +924,13 @@ app.get('/api/admin/overview', auth, adminOnly, (req, res) => {
   })
 })
 
-// ساخت دستی کاربر توسط مدیر — مثلاً ثبت‌نام حضوری؛ شمارهٔ تکراری کاربر موجود را برمی‌گرداند
+// ساخت دستی کاربر توسط مدیر — مثلاً ثبت‌نام حضوری؛ نام کاربری تکراری کاربر موجود را برمی‌گرداند
 app.post('/api/admin/users', auth, adminOnly, (req, res) => {
   const name = String(req.body?.name || '').trim()
-  const phone = normalizePhone(req.body?.phone)
+  const phone = normalizeUsername(req.body?.phone)
   const password = String(req.body?.password || '')
   if (!name) return res.status(400).json({ error: 'نام الزامی است' })
-  if (!isValidPhone(phone)) return res.status(400).json({ error: 'شماره موبایل نامعتبر است. مثال: 09123456789' })
+  if (!isValidUsername(phone)) return res.status(400).json({ error: 'نام کاربری باید ۳ تا ۴۰ کاراکتر بدون فاصله باشد' })
   if (password && password.length < 4) return res.status(400).json({ error: 'رمز عبور باید حداقل ۴ کاراکتر باشد' })
   const db = getDb()
   const dup = db.users.find((u) => u.phone === phone)
@@ -1168,7 +1049,7 @@ app.post('/api/admin/users/:id/note', auth, adminOnly, (req, res) => {
   res.json({ ok: true, note: u.note })
 })
 
-// ویرایش اطلاعات کاربر (نام/موبایل) — برای اصلاح توسط مدیر
+// ویرایش اطلاعات کاربر (نام/نام کاربری) — برای اصلاح توسط مدیر
 app.patch('/api/admin/users/:id', auth, adminOnly, (req, res) => {
   const db = getDb()
   const u = db.users.find((x) => x.id === req.params.id)
@@ -1179,10 +1060,10 @@ app.patch('/api/admin/users/:id', auth, adminOnly, (req, res) => {
     u.name = name
   }
   if (req.body?.phone != null && !u.admin) {
-    const phone = normalizePhone(req.body.phone)
-    if (!isValidPhone(phone)) return res.status(400).json({ error: 'شماره موبایل نامعتبر است' })
+    const phone = normalizeUsername(req.body.phone)
+    if (!isValidUsername(phone)) return res.status(400).json({ error: 'نام کاربری نامعتبر است' })
     if (db.users.some((x) => x.id !== u.id && x.phone === phone))
-      return res.status(409).json({ error: 'این شماره برای کاربر دیگری ثبت شده است' })
+      return res.status(409).json({ error: 'این نام کاربری برای کاربر دیگری ثبت شده است' })
     u.phone = phone
   }
   save()
@@ -1191,7 +1072,7 @@ app.patch('/api/admin/users/:id', auth, adminOnly, (req, res) => {
 
 // حذف کامل کاربر — حساب، نشست‌ها، تلاش‌ها، آزمون‌های ساخته‌شده، نظرها و عکس پروفایل پاک می‌شود.
 // سفارش‌ها نگه‌داری می‌شوند تا سوابق مالی/درآمد از بین نرود (نام کاربر در لیست سفارش‌ها «—» می‌شود)
-app.delete('/api/admin/users/:id', auth, adminOnly, (req, res) => {
+app.delete('/api/admin/users/:id', auth, adminOnly, async (req, res) => {
   const db = getDb()
   const u = db.users.find((x) => x.id === req.params.id)
   if (!u) return res.status(404).json({ error: 'کاربر یافت نشد' })
@@ -1201,8 +1082,7 @@ app.delete('/api/admin/users/:id', auth, adminOnly, (req, res) => {
   db.attempts = db.attempts.filter((a) => a.userId !== u.id)
   db.generated = db.generated.filter((g) => g.userId !== u.id && g.createdBy !== u.id)
   db.feedback = db.feedback.filter((f) => f.userId !== u.id)
-  db.otps = db.otps.filter((o) => o.phone !== u.phone)
-  removeAvatarFiles(u.id)
+  await removeAvatar(u.id)
   save()
   res.json({ ok: true })
 })

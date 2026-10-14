@@ -1,4 +1,4 @@
-// تست headless بک‌اند دمو — شبیه‌سازی localStorage و اجرای کل جریان
+// Headless test of the demo backend — simulates localStorage and runs the whole flow
 const store = new Map()
 globalThis.localStorage = {
   getItem: (k) => (store.has(k) ? store.get(k) : null),
@@ -13,19 +13,16 @@ const assert = (cond, msg) => {
   console.log('PASS:', msg)
 }
 
-// 1. OTP flow
-const otp = await demoApi('/otp/request', { method: 'POST', body: { phone: '09121112233' } })
-assert(otp.devCode && otp.isNewUser, `otp/request → devCode=${otp.devCode}, isNewUser=${otp.isNewUser}`)
-
-const v = await demoApi('/otp/verify', { method: 'POST', body: { phone: '09121112233', code: otp.devCode, name: 'کاربر دمو' } })
-assert(v.token && v.user?.name === 'کاربر دمو', 'otp/verify → token + user')
+// 1. register flow
+const v = await demoApi('/register', { method: 'POST', body: { name: 'کاربر دمو', phone: 'demo_user', password: '1234' } })
+assert(v.token && v.user?.name === 'کاربر دمو', 'register → token + user')
 store.set('azmoon_token', v.token)
 
 // 2. me
 const me = await demoApi('/me')
-assert(me.user.phone === '09121112233', 'me → user')
+assert(me.user.phone === 'demo_user', 'me → user')
 
-// 3. exams list — درجه ۳: جامع بدنسازی/فیتنس (تعداد سری‌ها به shuffle بانک بستگی دارد) + فدراسیون + تک‌درس تخصصی
+// 3. exams list — grade 3: comprehensive bodybuilding/fitness (series count depends on bank shuffle) + federation + single-lesson
 const exams = await demoApi('/exams')
 const comps = exams.filter((e) => e.type === 'comprehensive')
 assert(comps.length >= 40 && exams.some((e) => e.id === 'fed1'), `exams → ${comps.length} جامع + فدراسیون`)
@@ -37,17 +34,17 @@ assert(bbm1 && bbm2 && bbw1, 'آزمون‌های جامع سری ۱ موجود�
 assert(bbm1.totalQuestions === 30, `bbm1 → ${bbm1.totalQuestions}q`)
 assert(bbm1.sections.every((s) => s.count === 0 || s.group === 'bodybuilding'), 'bbm1 → فقط دروس تخصصی بدنسازی')
 assert(bbm1.sections.filter((s) => s.count > 0).length === 6, 'bbm1 → ۶ بلوک درسی')
-// درس جنسیتی: داوری فقط آقایان، فنی تخصصی فقط بانوان
+// gendered lesson: judging for men only, technical-specialized for women only
 assert(bbm1.sections.find((s) => s.id === 'bb-davari').count > 0, 'bbm1 → شامل داوری')
 assert(bbm1.sections.find((s) => s.id === 'bb-tech').count === 0, 'bbm1 → بدون فنی تخصصی')
 assert(bbw1.sections.find((s) => s.id === 'bb-tech').count > 0, 'bbw1 → شامل فنی تخصصی')
 assert(bbw1.sections.find((s) => s.id === 'bb-davari').count === 0, 'bbw1 → بدون داوری')
 assert(exams.every((e) => e.type !== 'single' || e.sectionId.startsWith('bb-') || e.sectionId.startsWith('fit-')), 'singles → فقط دروس تخصصی')
-// پیول: قبل از اولین آزمون جامع، همهٔ جامع‌ها با اعتبار آزمون رایگان بازند
+// paywall: before the first comprehensive exam, all comprehensives are open via the free-exam credit
 assert(bbm2.trial === true && bbm2.locked === false, 'bbm2 → آزمون رایگان (trial)')
 assert(exams.find((e) => e.id === 's-bb-anatomy').trial === false, 'تک‌درس → همیشه رایگان (بدون trial)')
 
-// 4. exam questions (no answers leaked) + ترتیب بلوکی برگهٔ فدراسیون
+// 4. exam questions (no answers leaked) + federation-sheet blocked ordering
 const qs = await demoApi('/exams/bbm1/questions')
 assert(qs.length === bbm1.totalQuestions && !('answer' in qs[0]) && !('explanation' in qs[0]), `bbm1 questions → ${qs.length}, answers stripped`)
 assert(new Set(qs.map((q) => q.id)).size === qs.length, 'bbm1 → بدون سوال تکراری')
@@ -56,7 +53,7 @@ const blocked = lessonOrder.every((sid, i) =>
   qs.slice(i * 5, i * 5 + 5).every((q) => q.topicIds.includes(sid)))
 assert(blocked, 'bbm1 → سوالات بلوکی به ترتیب درس‌ها (۵ سوال از هر درس)')
 
-// 5. generate single + comprehensive (فقط تخصصی درجه ۳، با جنسیت)
+// 5. generate single + comprehensive (grade-3 specialized only, with gender)
 const single = await demoApi('/exams/generate', { method: 'POST', body: { mode: 'single', sectionId: 'bb-anatomy', discipline: 'bodybuilding', gender: 'men' } })
 assert(single.totalQuestions === 5, `generate single bb-anatomy → ${single.totalQuestions}q`)
 const comp = await demoApi('/exams/generate', { method: 'POST', body: { mode: 'comprehensive', discipline: 'fitness', gender: 'women' } })
@@ -64,7 +61,7 @@ assert(comp.totalQuestions === 30, `generate comprehensive fitness بانوان 
 assert(comp.sections.find((s) => s.id === 'fit-tech').count > 0, 'fitness بانوان → شامل فنی تخصصی')
 assert(comp.sections.find((s) => s.id === 'fit-davari').count === 0, 'fitness بانوان → بدون داوری')
 
-// 5b. آزمون کتبی تخصصی — سوالات فقط از سرفصل‌های همان رشته و جنسیت
+// 5b. specialized written exam — questions only from that discipline's and gender's topics
 const writtenBB = await demoApi('/exams/generate', { method: 'POST', body: { mode: 'comprehensive', discipline: 'bodybuilding', gender: 'men' } })
 assert(writtenBB.title === 'آزمون کتبی تخصصی بدنسازی آقایان' && writtenBB.totalQuestions === 30, `written BB → ${writtenBB.title} ${writtenBB.totalQuestions}q`)
 assert(writtenBB.sections.every((s) => s.count === 0 || s.group === 'bodybuilding'), 'written BB → فقط دروس تخصصی بدنسازی')
@@ -89,10 +86,10 @@ for (const q of gqs) answers[q.id] = 0 // some right, some wrong — just exerci
 const sub = await demoApi('/exams/bbm1/submit', { method: 'POST', body: { answers, timeSpent: 300, flags: [] } })
 assert(sub.attempt.total === bbm1.totalQuestions && Array.isArray(sub.sectionStats) && sub.sectionStats.length > 0, `submit → total=${sub.attempt.total}, sectionStats=${sub.sectionStats.length}`)
 assert(sub.pointsEarned === sub.attempt.correct * 10, `points=${sub.pointsEarned}, streak=${sub.streak}`)
-// آزمون رایگان: پاسخ تشریحی قفل و ارسال نمی‌شود (پاسخ صحیح دیده می‌شود)
+// free exam: the explanation is locked and not sent (the correct answer is still shown)
 assert(sub.detail.every((d) => d.explanation === null && d.explanationLocked === true && typeof d.answer === 'number'), 'trial → پاسخ تشریحی قفل')
 
-// 6b. آزمون رایگان مصرف شد — بقیهٔ جامع‌ها و آزمون‌ساز قفل، تک‌درس‌ها رایگان
+// 6b. free exam consumed — other comprehensives and the generator lock, single-lessons stay free
 const examsAfter = await demoApi('/exams')
 assert(examsAfter.find((e) => e.id === 'bbm2').locked === true, 'پس از آزمون رایگان → bbm2 قفل')
 assert(examsAfter.find((e) => e.id === 's-bb-anatomy').locked === false, 'تک‌درس → همچنان رایگان')
@@ -105,7 +102,7 @@ assert(genErr, 'آزمون‌ساز پس از آزمون رایگان → SUBSCR
 const meAfter = await demoApi('/me')
 assert(meAfter.user.freeExamUsed === true, '/me → freeExamUsed=true پس از آزمون جامع')
 
-// 6c. آمار و سوابق ویژه مشترکین است
+// 6c. stats and history are subscriber-only
 let statsErr = false
 try { await demoApi('/stats') } catch (e) { statsErr = e.code === 'SUBSCRIPTION_REQUIRED' }
 assert(statsErr, 'stats قبل از اشتراک → SUBSCRIPTION_REQUIRED')
@@ -114,7 +111,7 @@ try { await demoApi('/attempts') } catch (e) { attErr = e.code === 'SUBSCRIPTION
 assert(attErr, 'attempts قبل از اشتراک → SUBSCRIPTION_REQUIRED')
 const dailyFree = await demoApi('/daily')
 assert(dailyFree.every((q) => q.explanation === null && q.explanationLocked === true), 'daily قبل از اشتراک → تشریحی قفل')
-// /subscribe فقط برای ادمین است — مسیر واقعی کاربر = سفارش پرداخت (در دمو بلافاصله فعال می‌شود)
+// /subscribe is admin-only — the real user path is a payment order (activates instantly in demo)
 const ord = await demoApi('/payment/order', { method: 'POST', body: { plan: 'monthly' } })
 assert(ord.orderId && ord.status === 'paid', 'payment/order → سفارش paid')
 

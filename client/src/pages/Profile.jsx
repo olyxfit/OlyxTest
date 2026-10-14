@@ -101,8 +101,8 @@ export default function Profile() {
     const name = editName.trim()
     const phone = editPhone.trim()
     if (!name || editBusy) return
-    if (!/^09\d{9}$/.test(phone)) {
-      setEditError('شماره موبایل نامعتبر است. مثال: 09123456789')
+    if (!/^\S{3,40}$/.test(phone)) {
+      setEditError('نام کاربری باید ۳ تا ۴۰ کاراکتر بدون فاصله باشد')
       return
     }
     setEditBusy(true)
@@ -321,11 +321,10 @@ export default function Profile() {
               <input
                 className="input pr-12 text-left"
                 dir="ltr"
-                inputMode="numeric"
-                placeholder="09123456789"
+                placeholder="نام کاربری"
                 value={editPhone}
                 onChange={(e) => setEditPhone(e.target.value)}
-                maxLength={11}
+                maxLength={40}
               />
             </div>
 

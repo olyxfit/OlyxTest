@@ -1,12 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { User, Phone, Lock, Eye, EyeOff, ShieldCheck, ArrowLeft, ArrowRight } from 'lucide-react'
+import { User, AtSign, Lock, Eye, EyeOff, ArrowLeft } from 'lucide-react'
 import { useAuth } from '../lib/auth.jsx'
-
-const RESEND_SECONDS = 60
-
-const FA_DIGITS = '۰۱۲۳۴۵۶۷۸۹'
-const toFa = (s) => String(s).replace(/\d/g, (d) => FA_DIGITS[Number(d)])
 
 // پس‌زمینه لندینگ — تصاویر لوکال باشگاه (داخل APK) با کراس‌فید آرام
 const BG_IMAGES = ['/assets/bg/bg-2.jpg', '/assets/bg/bg-3.jpg', '/assets/bg/bg-1.jpg']
@@ -41,78 +36,23 @@ function ImageBackground() {
 }
 
 export default function Auth() {
-  const [step, setStep] = useState('phone') // 'phone' | 'code'
-  const [mode, setMode] = useState('otp') // 'otp' | 'password'
-  const [userId, setUserId] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [showPass, setShowPass] = useState(false)
   const [name, setName] = useState('')
-  const [phone, setPhone] = useState('')
-  const [code, setCode] = useState('')
-  const [isNewUser, setIsNewUser] = useState(false)
-  const [devCode, setDevCode] = useState('')
-  const [resendLeft, setResendLeft] = useState(0)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
-  const [signup, setSignup] = useState(false) // حالت ثبت‌نام در تب رمز
-  const { requestOtp, verifyOtp, login, register } = useAuth()
+  const [signup, setSignup] = useState(false)
+  const { login, register } = useAuth()
   const nav = useNavigate()
-  const codeRef = useRef(null)
 
-  useEffect(() => {
-    if (resendLeft <= 0) return
-    const t = setTimeout(() => setResendLeft((s) => s - 1), 1000)
-    return () => clearTimeout(t)
-  }, [resendLeft])
-
-  const sendCode = async (e) => {
-    e?.preventDefault()
-    setError('')
-    setBusy(true)
-    try {
-      const d = await requestOtp(phone)
-      setIsNewUser(d.isNewUser)
-      setDevCode(d.devCode || '')
-      setStep('code')
-      setResendLeft(RESEND_SECONDS)
-      setCode('')
-      setTimeout(() => codeRef.current?.focus(), 50)
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const submitCode = async (e) => {
+  const submit = async (e) => {
     e.preventDefault()
     setError('')
     setBusy(true)
     try {
-      await verifyOtp(phone, code, name || undefined)
-      nav('/', { replace: true })
-    } catch (err) {
-      if (err.code === 'NAME_REQUIRED' || err.message?.includes('نام')) setIsNewUser(true)
-      setError(err.message)
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const editPhone = () => {
-    setStep('phone')
-    setCode('')
-    setDevCode('')
-    setError('')
-  }
-
-  const submitPassword = async (e) => {
-    e.preventDefault()
-    setError('')
-    setBusy(true)
-    try {
-      const id = userId.replace(/[۰-۹]/g, (d) => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d))
-      // ثبت‌نام با شمارهٔ تکراری سمت سرور به ورود تبدیل می‌شود (نام جدید هم اعمال می‌شود)
+      const id = username.replace(/[۰-۹]/g, (d) => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).trim()
+      // ثبت‌نام با نام کاربری تکراری سمت سرور به ورود تبدیل می‌شود (نام جدید هم اعمال می‌شود)
       if (signup) await register(name, id, password)
       else await login(id, password)
       nav('/', { replace: true })
@@ -148,8 +88,7 @@ export default function Auth() {
           </p>
         </div>
 
-      {step === 'phone' && mode === 'password' && (
-        <form onSubmit={submitPassword} className="mt-10 space-y-4 animate-pop" style={{ animationDelay: '60ms' }}>
+        <form onSubmit={submit} className="mt-10 space-y-4 animate-pop" style={{ animationDelay: '60ms' }}>
           {signup && (
             <div className="relative">
               <User className="absolute right-4 top-1/2 -translate-y-1/2 size-5 text-slate-500" />
@@ -163,15 +102,15 @@ export default function Auth() {
             </div>
           )}
           <div className="relative">
-            <Phone className="absolute right-4 top-1/2 -translate-y-1/2 size-5 text-slate-500" />
+            <AtSign className="absolute right-4 top-1/2 -translate-y-1/2 size-5 text-slate-500" />
             <input
               className="input pr-12"
-              placeholder="شماره موبایل"
-              inputMode="tel"
+              placeholder="نام کاربری"
               dir="ltr"
               style={{ textAlign: 'right' }}
-              value={userId}
-              onChange={(e) => setUserId(e.target.value)}
+              autoComplete="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               required
               autoFocus={!signup}
             />
@@ -182,6 +121,7 @@ export default function Auth() {
               className="input pr-12 pl-12"
               type={showPass ? 'text' : 'password'}
               placeholder="رمز عبور"
+              autoComplete={signup ? 'new-password' : 'current-password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -211,129 +151,9 @@ export default function Auth() {
             onClick={() => { setSignup(!signup); setError('') }}
             className="w-full text-center text-sm text-indigo-600 hover:text-indigo-700"
           >
-            {signup ? 'حساب دارید؟ ورود' : 'حساب ندارید؟ ثبت‌نام با رمز'}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => { setMode('otp'); setError('') }}
-            className="w-full text-center text-sm text-indigo-600 hover:text-indigo-700"
-          >
-            ورود با شماره موبایل و کد پیامکی
+            {signup ? 'حساب دارید؟ ورود' : 'حساب ندارید؟ ثبت‌نام'}
           </button>
         </form>
-      )}
-
-      {step === 'phone' && mode === 'otp' && (
-        <form onSubmit={sendCode} className="mt-10 space-y-4 animate-pop" style={{ animationDelay: '60ms' }}>
-          <div className="relative">
-            <Phone className="absolute right-4 top-1/2 -translate-y-1/2 size-5 text-slate-500" />
-            <input
-              className="input pr-12"
-              placeholder="شماره موبایل (۰۹...)"
-              inputMode="tel"
-              dir="ltr"
-              style={{ textAlign: 'right' }}
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              required
-              autoFocus
-            />
-          </div>
-          <p className="text-xs text-slate-500 leading-6">
-            کد تایید برای ورود یا ثبت‌نام به این شماره پیامک می‌شود.
-          </p>
-
-          {error && (
-            <div className="text-sm text-rose-600 bg-rose-500/10 border border-rose-500/30 rounded-xl px-4 py-3">
-              {error}
-            </div>
-          )}
-
-          <button className="btn-primary flex items-center justify-center gap-2" disabled={busy}>
-            {busy ? 'در حال ارسال کد…' : 'دریافت کد تایید'}
-            {!busy && <ArrowLeft className="size-4" />}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => { setMode('password'); setError('') }}
-            className="w-full text-center text-sm text-indigo-600 hover:text-indigo-700"
-          >
-            ورود با نام کاربری و رمز عبور
-          </button>
-        </form>
-      )}
-
-      {step === 'code' && (
-        <form onSubmit={submitCode} className="mt-10 space-y-4 animate-pop">
-          <div className="flex items-center justify-between">
-            <button type="button" onClick={editPhone} className="flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-700">
-              <ArrowRight className="size-4" />
-              ویرایش شماره
-            </button>
-            <span className="text-sm text-slate-600" dir="ltr">{phone}</span>
-          </div>
-
-          {isNewUser && (
-            <div className="relative">
-              <User className="absolute right-4 top-1/2 -translate-y-1/2 size-5 text-slate-500" />
-              <input
-                className="input pr-12"
-                placeholder="نام و نام خانوادگی"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
-            </div>
-          )}
-
-          <div className="relative">
-            <ShieldCheck className="absolute right-4 top-1/2 -translate-y-1/2 size-5 text-slate-500" />
-            <input
-              ref={codeRef}
-              className="input pr-12 tracking-[0.5em] text-center"
-              placeholder="کد ۴ رقمی"
-              inputMode="numeric"
-              dir="ltr"
-              maxLength={4}
-              value={code}
-              onChange={(e) => setCode(e.target.value.replace(/[^\d۰-۹٠-٩]/g, '').slice(0, 4))}
-              required
-              minLength={4}
-            />
-          </div>
-          <p className="text-[11px] text-slate-400 text-center -mt-1">
-            کد را می‌توانید با ارقام فارسی یا انگلیسی وارد کنید
-          </p>
-
-          {devCode && (
-            <div className="text-sm text-amber-600 bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3 text-center">
-              پیامک فعال نیست — کد تایید: <span className="font-bold text-base">{toFa(devCode)}</span>
-            </div>
-          )}
-
-          {error && (
-            <div className="text-sm text-rose-600 bg-rose-500/10 border border-rose-500/30 rounded-xl px-4 py-3">
-              {error}
-            </div>
-          )}
-
-          <button className="btn-primary flex items-center justify-center gap-2" disabled={busy || code.length < 4}>
-            {busy ? 'در حال بررسی…' : isNewUser ? 'ثبت‌نام و ورود' : 'تایید و ورود'}
-            {!busy && <ArrowLeft className="size-4" />}
-          </button>
-
-          <button
-            type="button"
-            onClick={sendCode}
-            disabled={busy || resendLeft > 0}
-            className="w-full text-center text-sm text-indigo-600 disabled:text-indigo-300"
-          >
-            {resendLeft > 0 ? `ارسال مجدد کد تا ${resendLeft} ثانیه دیگر` : 'ارسال مجدد کد'}
-          </button>
-        </form>
-      )}
 
         </div>
 

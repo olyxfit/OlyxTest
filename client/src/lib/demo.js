@@ -12,7 +12,7 @@ const byId = new Map(questions.map((q) => [q.id, q]))
 
 const DB_KEY = 'azmoon_demo_db'
 const TOKEN_KEY = 'azmoon_token'
-const BASE_DB = { users: [], sessions: [], attempts: [], generated: [], otps: [], announcements: [], feedback: [], orders: [] }
+const BASE_DB = { users: [], sessions: [], attempts: [], generated: [], announcements: [], feedback: [], orders: [] }
 
 const load = () => {
   try {
@@ -34,23 +34,12 @@ const newToken = () => {
 // ---------- کمکی‌های مشترک با سرور ----------
 const FA_DIGITS = '۰۱۲۳۴۵۶۷۸۹'
 const AR_DIGITS = '٠١٢٣٤٥٦٧٨٩'
-const normalizePhone = (raw) => {
-  let s = String(raw || '')
-    .replace(/[۰-۹]/g, (d) => String(FA_DIGITS.indexOf(d)))
-    .replace(/[٠-٩]/g, (d) => String(AR_DIGITS.indexOf(d)))
-    .replace(/\D/g, '')
-  if (s.startsWith('0098')) s = '0' + s.slice(4)
-  else if (s.startsWith('98') && s.length === 12) s = '0' + s.slice(2)
-  else if (s.startsWith('9') && s.length === 10) s = '0' + s
-  return s
-}
-const isValidPhone = (p) => /^09\d{9}$/.test(p)
-const normalizeCode = (raw) =>
+const normalizeUsername = (raw) =>
   String(raw || '')
     .replace(/[۰-۹]/g, (d) => String(FA_DIGITS.indexOf(d)))
     .replace(/[٠-٩]/g, (d) => String(AR_DIGITS.indexOf(d)))
-    .replace(/\D/g, '')
     .trim()
+const isValidUsername = (u) => /^\S{3,40}$/.test(u)
 
 const TEHRAN_OFFSET = 3.5 * 3600000
 const DAY_MS = 86400000
@@ -103,8 +92,6 @@ const adminRequired = (user) => {
 const DISCIPLINES = { bodybuilding: 'بدنسازی', fitness: 'فیتنس' }
 const GENDER_TITLES = { men: 'آقایان', women: 'بانوان' }
 const LEADERBOARD_DAYS = { day: 1, week: 7, month: 30, all: Infinity }
-const OTP_TTL = 2 * 60 * 1000
-const OTP_COOLDOWN = 60 * 1000
 
 // اکانت مدیر دمو — مطابق سرور
 const seedAdmin = (db) => {
@@ -134,16 +121,16 @@ const questionsForAny = (exam) => questionsForExam(exam)
 const handlers = {
   'POST /register': (db, body) => {
     const { name, password } = body || {}
-    const phone = normalizePhone(body?.phone)
+    const phone = normalizeUsername(body?.phone)
     if (!name?.trim() || !phone || !password)
-      throw new Error('نام، شماره موبایل و رمز عبور الزامی است')
-    if (!isValidPhone(phone)) throw new Error('شماره موبایل نامعتبر است. مثال: 09123456789')
+      throw new Error('نام، نام کاربری و رمز عبور الزامی است')
+    if (!isValidUsername(phone)) throw new Error('نام کاربری باید ۳ تا ۴۰ کاراکتر بدون فاصله باشد')
     if (password.length < 4) throw new Error('رمز عبور باید حداقل ۴ کاراکتر باشد')
     const existing = db.users.find((u) => u.phone === phone)
     if (existing) {
-      // شمارهٔ تکراری = ورود (مطابق سرور)؛ حساب بدون رمز فقط با کد پیامکی وارد می‌شود
-      if (!existing.password) throw new Error('این شماره قبلاً ثبت‌نام شده است — با «کد تایید پیامکی» وارد شوید')
-      if (existing.password !== password) throw new Error('این شماره قبلاً ثبت‌نام شده و رمز واردشده درست نیست')
+      // نام کاربری تکراری = ورود (مطابق سرور)
+      if (!existing.password) throw new Error('این نام کاربری قبلاً ثبت شده و رمز ندارد — با پشتیبانی تماس بگیرید')
+      if (existing.password !== password) throw new Error('این نام کاربری قبلاً ثبت شده و رمز واردشده درست نیست')
       const n = name.trim()
       if (n !== existing.name) existing.name = n
       const token = newToken()
@@ -158,9 +145,9 @@ const handlers = {
   },
 
   'POST /login': (db, body) => {
-    const user = db.users.find((u) => u.phone === normalizePhone(body?.phone))
+    const user = db.users.find((u) => u.phone === normalizeUsername(body?.phone))
     if (!user || user.password !== body?.password)
-      throw new Error('شماره موبایل یا رمز عبور اشتباه است')
+      throw new Error('نام کاربری یا رمز عبور اشتباه است')
     const token = newToken()
     db.sessions.push({ token, userId: user.id })
     return { token, user: publicUser(db, user) }
@@ -169,52 +156,6 @@ const handlers = {
   'POST /logout': (db, _body, token) => {
     db.sessions = db.sessions.filter((s) => s.token !== token)
     return { ok: true }
-  },
-
-  'POST /otp/request': (db, body) => {
-    const phone = normalizePhone(body?.phone)
-    if (!isValidPhone(phone)) throw new Error('شماره موبایل نامعتبر است. مثال: 09123456789')
-    const now = Date.now()
-    db.otps = db.otps.filter((o) => now - o.createdAt <= OTP_TTL)
-    const prev = db.otps.find((o) => o.phone === phone)
-    if (prev && now - prev.createdAt < OTP_COOLDOWN) {
-      const wait = Math.ceil((OTP_COOLDOWN - (now - prev.createdAt)) / 1000)
-      throw new Error(`کد تایید قبلاً ارسال شده است. ${wait} ثانیه دیگر تلاش کنید`)
-    }
-    const code = String(Math.floor(Math.random() * 10000)).padStart(4, '0')
-    db.otps = db.otps.filter((o) => o.phone !== phone)
-    db.otps.push({ phone, code, createdAt: now })
-    // در دمو پیامکی ارسال نمی‌شود؛ کد مستقیم نمایش داده می‌شود (devCode)
-    return { ok: true, isNewUser: !db.users.some((u) => u.phone === phone), expiresIn: OTP_TTL / 1000, devCode: code }
-  },
-
-  'POST /otp/verify': (db, body) => {
-    const phone = normalizePhone(body?.phone)
-    const code = normalizeCode(body?.code)
-    const otp = db.otps.find((o) => o.phone === phone)
-    if (!otp) throw new Error('کدی برای این شماره ارسال نشده است. ابتدا درخواست کد دهید')
-    if (Date.now() - otp.createdAt > OTP_TTL) {
-      db.otps = db.otps.filter((o) => o !== otp)
-      throw new Error('کد تایید منقضی شده است. دوباره درخواست کنید')
-    }
-    if (otp.code !== code) throw new Error('کد وارد شده اشتباه است')
-    let user = db.users.find((u) => u.phone === phone)
-    const name = String(body?.name || '').trim()
-    if (!user) {
-      if (!name) {
-        const err = new Error('نام و نام خانوادگی الزامی است')
-        err.code = 'NAME_REQUIRED'
-        throw err
-      }
-      user = { id: uid(), name, phone, createdAt: Date.now() }
-      db.users.push(user)
-    } else if (name && name !== user.name) {
-      user.name = name.slice(0, 60)
-    }
-    db.otps = db.otps.filter((o) => o !== otp)
-    const token = newToken()
-    db.sessions.push({ token, userId: user.id })
-    return { token, user: publicUser(db, user) }
   },
 
   'GET /me': (db, _body, user) => ({ user: publicUser(db, user) }),
@@ -226,10 +167,10 @@ const handlers = {
       user.name = name
     }
     if (body?.phone != null) {
-      const phone = normalizePhone(body.phone)
-      if (!isValidPhone(phone)) throw new Error('شماره موبایل نامعتبر است. مثال: 09123456789')
+      const phone = normalizeUsername(body.phone)
+      if (!isValidUsername(phone)) throw new Error('نام کاربری باید ۳ تا ۴۰ کاراکتر بدون فاصله باشد')
       if (db.users.some((x) => x.id !== user.id && x.phone === phone))
-        throw new Error('این شماره برای کاربر دیگری ثبت شده است')
+        throw new Error('این نام کاربری برای کاربر دیگری ثبت شده است')
       user.phone = phone
     }
     return { user: publicUser(db, user) }
@@ -667,7 +608,7 @@ export async function demoApi(path, { method = 'GET', body } = {}) {
   const session = db.sessions.find((s) => s.token === token)
   const user = session ? db.users.find((u) => u.id === session.userId) : null
 
-  const needsAuth = !['/otp/request', '/otp/verify', '/register', '/login', '/version'].includes(path)
+  const needsAuth = !['/register', '/login', '/version'].includes(path)
   if (needsAuth && !user) {
     persist(db)
     throw new Error('احراز هویت نامعتبر است')

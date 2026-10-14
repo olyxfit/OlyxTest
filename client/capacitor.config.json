@@ -1,7 +1,7 @@
 {
   "appId": "ir.azmoon.morabi",
   "appName": "OlyxTest",
-  "webDir": "dist",
+  "webDir": "dist-apk",
   "android": {
     "allowMixedContent": true
   },

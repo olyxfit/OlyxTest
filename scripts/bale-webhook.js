@@ -1,8 +1,8 @@
-// مدیریت وب‌هوک بازوی بله — جایگزین پولینگ در پروداکشن
-//   node app/scripts/bale-webhook.js info              ← وضعیت فعلی وب‌هوک
-//   node app/scripts/bale-webhook.js set <domain>      ← ثبت https://domain/api/bale/webhook?secret=...
-//   node app/scripts/bale-webhook.js del               ← حذف وب‌هوک (برگشت به پولینگ)
-// توکن و راز را از app/server/.env می‌خواند؛ بدون BALE_WEBHOOK_SECRET ثبت انجام نمی‌شود
+// Bale bot webhook management — replaces polling in production
+//   node app/scripts/bale-webhook.js info              <- current webhook status
+//   node app/scripts/bale-webhook.js set <domain>      <- register https://domain/api/bale/webhook?secret=...
+//   node app/scripts/bale-webhook.js del               <- delete webhook (back to polling)
+// Reads token and secret from app/server/.env; registration requires BALE_WEBHOOK_SECRET
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -42,7 +42,11 @@ try {
       ? arg
       : `https://${arg.replace(/^https?:\/\//, '').replace(/\/$/, '')}/api/bale/webhook?secret=${BALE_WEBHOOK_SECRET}`
     console.log('ثبت وب‌هوک:', url.replace(BALE_WEBHOOK_SECRET, '***'))
-    console.log(JSON.stringify(await callApi('setWebhook', { url }), null, 2))
+    console.log(JSON.stringify(await callApi('setWebhook', {
+      url,
+      allowed_updates: ['message', 'pre_checkout_query'],
+      drop_pending_updates: true,
+    }), null, 2))
     console.log(JSON.stringify(await callApi('getWebhookInfo'), null, 2))
   } else if (cmd === 'del') {
     console.log(JSON.stringify(await callApi('deleteWebhook'), null, 2))

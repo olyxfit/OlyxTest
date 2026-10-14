@@ -150,7 +150,7 @@ export default function Overview() {
           <div className="wrap-scroll" style={{ maxHeight: 320 }}>
             <table className="grid">
               <thead>
-                <tr><th className="rn"></th><th>نام</th><th>موبایل</th><th>اشتراک</th><th>آزمون</th><th>عضویت</th></tr>
+                <tr><th className="rn"></th><th>نام</th><th>نام کاربری</th><th>اشتراک</th><th>آزمون</th><th>عضویت</th></tr>
               </thead>
               <tbody>
                 {(users || []).slice(0, 6).map((u, i) => (

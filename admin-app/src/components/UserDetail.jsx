@@ -26,7 +26,7 @@ export default function UserDetail({ userId, onBack, onChanged, notify }) {
     } catch (e) { notify(e.message) } finally { setSavingNote(false) }
   }
 
-  // ویرایش نام/موبایل و خروج اجباری
+  // ویرایش نام/نام کاربری و خروج اجباری
   const [editOpen, setEditOpen] = useState(false)
   const [eName, setEName] = useState('')
   const [ePhone, setEPhone] = useState('')
@@ -127,7 +127,7 @@ export default function UserDetail({ userId, onBack, onChanged, notify }) {
           <h3>ویرایش کاربر</h3>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <input className="field" style={{ flex: 1, minWidth: 160, margin: 0 }} value={eName} onChange={(e) => setEName(e.target.value)} placeholder="نام" required />
-            <input className="field ltr" style={{ flex: 1, minWidth: 160, margin: 0 }} value={ePhone} onChange={(e) => setEPhone(e.target.value)} placeholder="شماره موبایل" />
+            <input className="field ltr" style={{ flex: 1, minWidth: 160, margin: 0 }} value={ePhone} onChange={(e) => setEPhone(e.target.value)} placeholder="نام کاربری" />
             <button className="btn" style={{ width: 'auto', padding: '9px 24px' }}>ذخیره</button>
             <button type="button" className="mini" onClick={() => setEditOpen(false)}>انصراف</button>
           </div>

@@ -3,7 +3,9 @@ client/node_modules
 client/android
 client/dist
 server/data
+server/.env
 scripts
 /azmoon-app.apk
+/azmoon-morabigari.apk
 /آزمون-مربیگری.apk
 *.log

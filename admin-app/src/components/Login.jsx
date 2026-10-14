@@ -28,8 +28,8 @@ export default function Login({ onLogin }) {
         <p>آزمون مربیگری بدنسازی و فیتنس — ورود با حساب مدیر</p>
         <input
           className="field ltr"
-          placeholder="شماره موبایل"
-          inputMode="numeric"
+          placeholder="نام کاربری"
+          inputMode="text"
           autoComplete="username"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}

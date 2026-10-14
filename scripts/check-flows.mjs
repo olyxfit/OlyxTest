@@ -1,7 +1,7 @@
-// چک سرتاسری فلوهای اپ — «ایجنت» تست API + اینواریانت‌های بانک سوال
-// اجرا:  node app/scripts/check-flows.mjs
-// کارها: بکاپ db.json ← اجرای سرور روی پورت موقت با env پاک (بدون کاوه‌نگار/بله)
-//        ← تست همهٔ فلوها ← kill و restore db.json
+// End-to-end check of the app flows — API "agent" test + question-bank invariants
+// Run:  node app/scripts/check-flows.mjs
+// Steps: back up db.json <- start the server on a temp port with a clean env
+//        (no Bale) <- test all flows <- kill and restore db.json
 import { spawn } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -16,7 +16,7 @@ const BASE = `http://localhost:${PORT}/api`
 const { sections, sectionsFor, questions, exams, questionsForExam, generateExamQuestions, shapeExam } =
   await import(path.join(APP, 'server', 'questions.js'))
 
-// ---------- گزارش ----------
+// ---------- reporting ----------
 const results = []
 const check = (name, cond, extra = '') =>
   results.push({ name, ok: !!cond, extra: cond ? '' : String(extra).slice(0, 300) })
@@ -35,7 +35,7 @@ const ansMap = new Map(questions.map((q) => [q.id, q.answer]))
 const answersFor = (qs, correct = true) =>
   Object.fromEntries(qs.map((q) => [q.id, correct ? ansMap.get(q.id) : (ansMap.get(q.id) + 1) % q.options.length]))
 
-// ---------- اینواریانت‌های بانک و مدل آزمون ----------
+// ---------- bank and exam-model invariants ----------
 section('اینواریانت‌های بانک و مدل آزمون')
 {
   check('همهٔ سوالات حداقل یک topic دارند', questions.every((q) => q.topicIds.length > 0))
@@ -58,7 +58,7 @@ section('اینواریانت‌های بانک و مدل آزمون')
     )
     byDisc[e.discipline].push(e)
   }
-  // عدم اشتراک سوال بین آزمون‌های هم‌رشته (بدنسازی↔فیتنس مجاز)
+  // no shared questions between same-discipline exams (bodybuilding<->fitness allowed)
   for (const [disc, list] of Object.entries(byDisc)) {
     const seen = new Map()
     let dup = null
@@ -68,14 +68,14 @@ section('اینواریانت‌های بانک و مدل آزمون')
     }
     check(`${disc}: بدون سوال مشترک بین آزمون‌های هم‌رشته`, !dup, dup || '')
   }
-  // درس جنسیتی
+  // gendered lesson
   for (const e of comp) {
     const ids = new Set(e.questionIds)
     const qsecs = new Set(questions.filter((q) => ids.has(q.id)).flatMap((q) => q.topicIds))
     const male = e.gender === 'men'
     check(`${e.id}: درس جنسیتی ${e.gender}`, male ? !sectionsFor(e.discipline, 'women').some((s) => s.gender === 'women' && qsecs.has(s.id)) : true)
   }
-  // تک‌درس‌ها
+  // single-lesson exams
   for (const s of [...sectionsFor('bodybuilding', 'men'), ...sectionsFor('bodybuilding', 'women'), ...sectionsFor('fitness', 'men'), ...sectionsFor('fitness', 'women')]) {
     const ex = exams.find((e) => e.id === `s-${s.id}`)
     if (questions.filter((q) => q.topicIds.includes(s.id) && !q.fed).length)
@@ -84,7 +84,7 @@ section('اینواریانت‌های بانک و مدل آزمون')
   check('fed1 موجود با سوال واقعی', exams.some((e) => e.id === 'fed1') && questionsForExam(exams.find((e) => e.id === 'fed1')).length > 0)
   check('همهٔ questionIds معتبرند', exams.every((e) => !e.questionIds || e.questionIds.every((id) => ansMap.has(id))))
 
-  // تولید تصادفی
+  // random generation
   for (const d of ['bodybuilding', 'fitness']) for (const g of ['men', 'women']) {
     const ids = generateExamQuestions('comprehensive', null, d, g)
     check(`generate ${d}/${g}: ۳۰ سوال یکتا`, ids.length === 30 && new Set(ids).size === 30, `n=${ids.length}`)
@@ -93,13 +93,14 @@ section('اینواریانت‌های بانک و مدل آزمون')
   check('generate single: ۵ سوال', singleIds.length === 5 && new Set(singleIds).size === 5, `n=${singleIds.length}`)
 }
 
-// ---------- اجرای سرور موقت ----------
+// ---------- run a temp server ----------
 section('اجرای سرور')
 const dbBak = DB + '.flowbak'
 const hadDb = fs.existsSync(DB)
 if (hadDb) fs.copyFileSync(DB, dbBak)
 
-const env = { PATH: process.env.PATH, HOME: process.env.HOME, PORT: String(PORT), BALE_POLLING: '0', NODE_ENV: 'test' }
+// DATABASE_URL خالی بک‌اند فایلی را نگه می‌دارد — loadEnvFile مقدار موجود را بازنویسی نمی‌کند
+const env = { PATH: process.env.PATH, HOME: process.env.HOME, PORT: String(PORT), BALE_POLLING: '0', NODE_ENV: 'test', DATABASE_URL: '' }
 let srv
 const startServer = async () => {
   srv = spawn('node', [path.join(APP, 'server', 'index.js')], { env, stdio: ['ignore', 'pipe', 'inherit'] })
@@ -111,7 +112,7 @@ const startServer = async () => {
   return false
 }
 const serverUp = await startServer()
-let preIds // برای چک پایداری آزمون‌های ازپیش‌ساخته بین ری‌استارت
+let preIds // for checking prebuilt-exam persistence across restarts
 
 const restore = () => {
   try { srv.kill('SIGKILL') } catch {}
@@ -124,7 +125,7 @@ try {
   check('سرور بالا آمد (/api/health)', serverUp)
   if (!serverUp) throw new Error('server did not start')
 
-  // ---------- فلوهای عمومی ----------
+  // ---------- public flows ----------
   section('فلوهای عمومی')
   {
     const v = await req('GET', '/version')
@@ -133,22 +134,24 @@ try {
     check('/api/public-stats → users:number', ps.status === 200 && typeof ps.data.users === 'number')
   }
 
-  // ---------- احراز هویت ----------
-  section('احراز هویت (رمز)')
-  const phone = '0912' + String(Math.floor(Math.random() * 9e6)).padStart(7, '0')
+  // ---------- auth ----------
+  section('احراز هویت (نام کاربری + رمز)')
+  const phone = 'user_' + String(Math.floor(Math.random() * 9e6)).padStart(7, '0')
   let token, userId
   {
     let r = await req('POST', '/register', { body: { name: 'تست فلو', phone, password: '1234' } })
     check('register → token+user', r.status === 200 && r.data.token && r.data.user?.phone === phone, JSON.stringify(r.data))
     token = r.data.token
     userId = r.data.user?.id
-    // شمارهٔ تکراری = ورود به همان حساب (نه ثبت‌نام دوباره و نه ۴۰۹)
+    // duplicate username = login to the same account (not a new signup and not 409)
     r = await req('POST', '/register', { body: { name: 'اسم جدید', phone, password: '1234' } })
     check('register تکراری + رمز درست → ورود و آپدیت نام', r.status === 200 && r.data.user?.id === userId && r.data.user?.name === 'اسم جدید', JSON.stringify(r.data))
     r = await req('POST', '/register', { body: { name: 'x', phone, password: 'bad!' } })
     check('register تکراری + رمز غلط → 401', r.status === 401, `status=${r.status}`)
-    r = await req('POST', '/register', { body: { name: 'x', phone: '09120000001', password: '12' } })
+    r = await req('POST', '/register', { body: { name: 'x', phone: 'someone_else', password: '12' } })
     check('register رمز کوتاه → 400', r.status === 400, `status=${r.status}`)
+    r = await req('POST', '/register', { body: { name: 'x', phone: 'ab', password: '1234' } })
+    check('register نام کاربری کوتاه → 400', r.status === 400, `status=${r.status}`)
     r = await req('POST', '/login', { body: { phone, password: 'wrong' } })
     check('login اشتباه → 401', r.status === 401, `status=${r.status}`)
     r = await req('POST', '/login', { body: { phone, password: '1234' } })
@@ -159,32 +162,7 @@ try {
     check('/api/me توکن بد → 401', r.status === 401)
   }
 
-  section('احراز هویت (OTP)')
-  {
-    let r = await req('POST', '/otp/request', { body: { phone: '123' } })
-    check('otp/request شماره بد → 400', r.status === 400)
-    const otpPhone = '0913' + String(Math.floor(Math.random() * 9e6)).padStart(7, '0')
-    r = await req('POST', '/otp/request', { body: { phone: otpPhone } })
-    check('otp/request → devCode + isNewUser', r.status === 200 && r.data.devCode && r.data.isNewUser === true, JSON.stringify(r.data))
-    const code = r.data.devCode
-    r = await req('POST', '/otp/request', { body: { phone: otpPhone } })
-    check('otp/request دوباره → 429 cooldown', r.status === 429 && r.data.retryAfter > 0, `status=${r.status}`)
-    r = await req('POST', '/otp/verify', { body: { phone: otpPhone, code: code === '0000' ? '9999' : '0000' } })
-    check('otp/verify کد غلط → 400', r.status === 400, `status=${r.status}`)
-    r = await req('POST', '/otp/verify', { body: { phone: otpPhone, code } })
-    check('otp/verify بدون نام → NAME_REQUIRED', r.status === 400 && r.data.code === 'NAME_REQUIRED', JSON.stringify(r.data))
-    r = await req('POST', '/otp/verify', { body: { phone: otpPhone, code, name: 'کاربر اوتی‌پی' } })
-    check('otp/verify → token (ثبت‌نام)', r.status === 200 && !!r.data.token, JSON.stringify(r.data))
-    // ورود دوبارهٔ همان کاربر با OTP
-    r = await req('POST', '/otp/request', { body: { phone: '۰۹۱۳' + otpPhone.slice(4) } }) // ارقام فارسی
-    check('otp/request با ارقام فارسی نرمال می‌شود', r.status === 200 && !!r.data.devCode, `status=${r.status}`)
-    if (r.status === 200) {
-      const v = await req('POST', '/otp/verify', { body: { phone: otpPhone, code: r.data.devCode } })
-      check('otp/verify ورود کاربر موجود بدون نام', v.status === 200 && !!v.data.token)
-    }
-  }
-
-  // ---------- فهرست آزمون و پیول ----------
+  // ---------- exam list and paywall ----------
   section('فهرست آزمون‌ها و پیول')
   {
     const r = await req('GET', '/exams', { token })
@@ -195,7 +173,7 @@ try {
     check('s-bb-taghzie رایگان (تک‌درس)', s && s.locked === false)
   }
 
-  // ---------- سوالات بدون جواب ----------
+  // ---------- questions served without answers ----------
   section('سرو سوالات')
   {
     const r = await req('GET', '/exams/bbm1/questions', { token })
@@ -206,10 +184,10 @@ try {
     check('fed1 questions سرو می‌شود', fed.status === 200 && fed.data.length > 0, `status=${fed.status}`)
   }
 
-  // ---------- سابمیت ----------
+  // ---------- submit ----------
   section('سابمیت آزمون')
   {
-    // اول تک‌درس — نباید آزمون رایگان جامع را مصرف کند
+    // a single-lesson first — must not consume the free comprehensive exam
     const singleExam = exams.find((e) => e.id === 's-bb-taghzie')
     const sqs = questionsForExam(singleExam)
     let r = await req('POST', `/exams/${singleExam.id}/submit`, { token, body: { answers: answersFor(sqs), timeSpent: 60, flags: [sqs[0].id, 'bogus-id'] } })
@@ -220,8 +198,8 @@ try {
     r = await req('GET', '/exams', { token })
     check('بعد از تک‌درس، جامع هنوز trial است', r.data.find((e) => e.id === 'bbm1')?.trial === true)
 
-    // سابمیت همه‌درست روی آزمون تولیدی — questionIds آن در db ذخیره و پایدار است
-    // (آزمون‌های ازپیش‌ساخته در هر بوت با Math.random بازسازی می‌شوند — تست جدا دارد)
+    // all-correct submit on a generated exam — its questionIds are stored in db and stable
+    // (prebuilt exams are reshuffled with Math.random on every boot — tested separately)
     r = await req('POST', '/exams/generate', { token, body: { mode: 'comprehensive', discipline: 'bodybuilding', gender: 'men' } })
     const gen = r.data
     check('generate جامع قبل از مصرف رایگان → مجاز', r.status === 200 && gen.questionIds?.length === 30, `status=${r.status}`)
@@ -233,7 +211,7 @@ try {
     check('pointsEarned = ۳۰۰ و streak=۱', r.data.pointsEarned === 300 && r.data.streak === 1, `p=${r.data.pointsEarned} s=${r.data.streak}`)
     check('آزمون trial: پاسخ تشریحی قفل است', r.data.detail?.some((d) => d.explanationLocked) || r.data.detail?.every((d) => d.explanation === null), 'no locked explanations')
 
-    // قفل بعدی
+    // next exam locked
     r = await req('GET', '/exams/bbm2/questions', { token })
     check('آزمون جامع دوم → 402 پیول', r.status === 402 && r.data.code === 'SUBSCRIPTION_REQUIRED', `status=${r.status}`)
     r = await req('POST', '/exams/bbm2/submit', { token, body: { answers: {} } })
@@ -241,7 +219,7 @@ try {
     r = await req('GET', '/exams/s-fit-systems/questions', { token })
     check('تک‌درس فیتنس هنوز باز است', r.status === 200, `status=${r.status}`)
 
-    // ورودی معیوب: کلید سوال نامعتبر نباید به‌عنوان «غلط» شمرده شود
+    // malformed input: an invalid question id must not count as "wrong"
     const bb1fresh = await req('POST', '/exams/s-bb-anatomy/submit', { token, body: { answers: { 'nonexistent-q': 0 }, timeSpent: 5 } })
     const at = bb1fresh.data.attempt
     check(
@@ -250,28 +228,28 @@ try {
       JSON.stringify(at && { c: at.correct, w: at.wrong, u: at.unanswered, t: at.total }),
     )
 
-    // برای چک پایداری آزمون‌های ازپیش‌ساخته بین ری‌استارت سرور (بخش پایانی)
+    // for checking prebuilt-exam persistence across server restarts (final section)
     preIds = (await req('GET', '/exams', { token })).data.find((e) => e.id === 'bbm1')?.questionIds
 
-    // پاسخ همه‌غلط → score=0
+    // all-wrong answers -> score=0
     const s2 = exams.find((e) => e.id === 's-bb-physio')
     const q2 = questionsForExam(s2)
     const r2 = await req('POST', '/exams/s-bb-physio/submit', { token, body: { answers: answersFor(q2, false), timeSpent: 10 } })
     check('submit همه‌غلط → score=0', r2.status === 200 && r2.data.attempt?.score === 0 && r2.data.attempt?.wrong === q2.length, JSON.stringify(r2.data.attempt))
   }
 
-  // ---------- آزمون‌ساز ----------
+  // ---------- exam generator ----------
   section('آزمون‌ساز (generate)')
   let adminToken
   {
     let r = await req('POST', '/exams/generate', { token, body: { mode: 'comprehensive', discipline: 'fitness', gender: 'men' } })
     check('generate جامع بعد از مصرف رایگان → 402', r.status === 402, `status=${r.status}`)
 
-    // subscribe فقط برای مدیر است — کاربر عادی 403 می‌گیرد
+    // subscribe is admin-only — a regular user gets 403
     r = await req('POST', '/subscribe', { token, body: { plan: 'monthly' } })
     check('/api/subscribe کاربر عادی → 403', r.status === 403, `status=${r.status}`)
 
-    // اعطای اشتراک از داشبرد مدیریتی به کاربر تست
+    // grant a subscription to the test user from the admin dashboard
     const adm = await req('POST', '/login', { body: { phone: '1111', password: '1111' } })
     adminToken = adm.data.token
     check('لاگین ادمین', adm.status === 200 && adm.data.user?.admin === true)
@@ -299,14 +277,14 @@ try {
     r = await req('GET', '/exams/g-nonexistent', { token })
     check('آزمون ناموجود → 404', r.status === 404)
 
-    // حریم خصوصی: آزمون تولیدی کاربر دیگر نباید دیده شود
+    // privacy: another user's generated exam must not be visible
     const other = await req('POST', '/exams/generate', { token, body: { mode: 'single', sectionId: 'bb-design', discipline: 'bodybuilding', gender: 'men' } })
-    const reg2 = await req('POST', '/register', { body: { name: 'کاربر دیگر', phone: '0915' + String(Math.floor(Math.random() * 9e6)).padStart(7, '0'), password: '1234' } })
+    const reg2 = await req('POST', '/register', { body: { name: 'کاربر دیگر', phone: 'other_' + String(Math.floor(Math.random() * 9e6)).padStart(7, '0'), password: '1234' } })
     r = await req('GET', `/exams/${other.data.id}`, { token: reg2.data.token })
     check('آزمون تولیدی کاربر دیگر → 404', r.status === 404, `status=${r.status}`)
   }
 
-  // ---------- کوییز روزانه ----------
+  // ---------- daily quiz ----------
   section('کوییز روزانه')
   {
     const r = await req('GET', '/daily', { token })
@@ -315,7 +293,7 @@ try {
     check('daily: سوال + options + answer برای تصحیح محلی', r.data.every?.((q) => q.question && Array.isArray(q.options) && Number.isInteger(q.answer)), 'answer missing?')
   }
 
-  // ---------- آمار و لیدربرد ----------
+  // ---------- stats and leaderboard ----------
   section('آمار، تلاش‌ها، لیدربرد')
   {
     let r = await req('GET', '/stats', { token })
@@ -324,7 +302,7 @@ try {
     r = await req('GET', '/attempts', { token })
     check('/api/attempts → دارای examTitle', r.status === 200 && r.data.length >= 3 && r.data.every((a) => a.examTitle), `n=${r.data?.length}`)
 
-    // مرور تلاش قبلی — پاسخ‌های ذخیره‌شده برمی‌گردد
+    // reviewing a past attempt returns the stored answers
     const attId = r.data.find((a) => a.answers && Object.keys(a.answers).length)?.id
     const det = await req('GET', `/attempts/${attId}`, { token })
     check(
@@ -338,7 +316,7 @@ try {
     }
   }
 
-  // ---------- کاربر بدون اشتراک: پیول آمار ----------
+  // ---------- non-subscriber: stats paywall ----------
   section('پیول آمار برای غیرمشترک')
   {
     const p2 = '0914' + String(Math.floor(Math.random() * 9e6)).padStart(7, '0')
@@ -352,8 +330,8 @@ try {
     check('daily غیرمشترک → توضیح قفل', d.status === 200 && d.data.some((q) => q.explanationLocked || q.explanation === null))
   }
 
-  // ---------- پرداخت بله ----------
-  // توجه: bale.js خودش server/.env را loadEnvFile می‌کند؛ پاک‌سازی env پروسه کافی نیست
+  // ---------- Bale payment ----------
+  // note: bale.js itself loadEnvFile's server/.env; cleaning the process env is not enough
   section('پرداخت بله')
   {
     const r = await req('POST', '/payment/order', { token, body: { plan: 'monthly' } })
@@ -370,12 +348,12 @@ try {
     check('پلن نامعتبر → 400', r2.status === 400)
     const r3 = await req('GET', '/payment/order/o-nothere', { token })
     check('سفارش ناموجود → 404', r3.status === 404)
-    // وب‌هوک بدون سکرت پیکربندی‌شده همیشه بسته است — successful_payment جعلی اثر ندارد
+    // the webhook is always closed without a configured secret — a fake successful_payment has no effect
     const wh = await req('POST', '/bale/webhook', { body: { message: { chat: { id: 1 }, successful_payment: { invoice_payload: 'o-x' } } } })
     check('وب‌هوک بدون سکرت → 403', wh.status === 403, `status=${wh.status}`)
   }
 
-  // ---------- اعلان‌ها و نظرات (ادمین) ----------
+  // ---------- announcements and feedback (admin) ----------
   section('اعلان‌ها و نظرات')
   {
     const at = adminToken
@@ -403,7 +381,7 @@ try {
     r = await req('DELETE', `/admin/feedback/${fid}`, { token: at })
     check('DELETE feedback → ok', r.status === 200)
 
-    // ---------- داشبرد مدیریتی و CRM ----------
+    // ---------- admin dashboard and CRM ----------
     r = await req('GET', '/admin/overview', { token: at })
     check('/admin/overview → شمارنده‌ها', r.status === 200 && r.data.users >= 1 && 'revenueRial' in r.data && 'attempts' in r.data, JSON.stringify(r.data))
     r = await req('GET', '/admin/users', { token: at })
@@ -422,16 +400,16 @@ try {
     check('note در جزئیات کاربر برمی‌گردد', ud.data.user?.note === 'یادداشت تست CRM')
     r = await req('PATCH', `/admin/users/${userId}`, { token: at, body: { name: 'تست فلو ۲' } })
     check('PATCH user → نام تغییر کرد', r.status === 200 && r.data.user?.name === 'تست فلو ۲')
-    r = await req('PATCH', `/admin/users/${userId}`, { token: at, body: { phone: '1111' } })
-    check('PATCH phone نامعتبر → 400', r.status === 400)
-    // ساخت دستی کاربر توسط مدیر — شمارهٔ تکراری کاربر موجود را برمی‌گرداند
-    const newPhone = '0917' + String(Math.floor(Math.random() * 9e6)).padStart(7, '0')
+    r = await req('PATCH', `/admin/users/${userId}`, { token: at, body: { phone: 'a b' } })
+    check('PATCH نام کاربری نامعتبر → 400', r.status === 400)
+    // manual user creation by admin — a duplicate username returns the existing user
+    const newPhone = 'madebyadmin_' + String(Math.floor(Math.random() * 9e6)).padStart(7, '0')
     r = await req('POST', '/admin/users', { token: at, body: { name: 'کاربر ادمین‌ساخته', phone: newPhone } })
     check('admin POST /users → ساخت کاربر', r.status === 200 && r.data.user?.phone === newPhone && r.data.existed === false)
     r = await req('POST', '/admin/users', { token: at, body: { name: 'اسم دیگر', phone: newPhone } })
     check('admin POST /users تکراری → existed بدون حساب جدید', r.status === 200 && r.data.existed === true)
-    r = await req('POST', '/admin/users', { token: at, body: { name: 'x', phone: '123' } })
-    check('admin POST /users شماره بد → 400', r.status === 400)
+    r = await req('POST', '/admin/users', { token: at, body: { name: 'x', phone: 'a b' } })
+    check('admin POST /users نام کاربری بد → 400', r.status === 400)
     r = await req('POST', '/admin/users', { token, body: { name: 'x', phone: '09176665545' } })
     check('admin POST /users کاربر عادی → 403', r.status === 403)
     r = await req('GET', '/admin/metrics', { token: at })
@@ -440,7 +418,7 @@ try {
     check('export users.csv → 200 CSV', csv.status === 200 && (csv.headers.get('content-type') || '').includes('text/csv'))
     const csvBody = await csv.text()
     check('CSV شامل ردیف کاربر تست', csvBody.includes('تست فلو'))
-    // لغو سفارش معلق از پنل
+    // cancel a pending order from the panel
     const ord = await req('POST', '/payment/order', { token, body: { plan: 'yearly' } })
     if (ord.status === 200 && ord.data.orderId) {
       const oc = await req('PATCH', `/admin/orders/${ord.data.orderId}`, { token: at, body: { status: 'canceled' } })
@@ -461,17 +439,17 @@ try {
         await req('PATCH', `/admin/orders/${o2.data.orderId}`, { token: at, body: { status: 'canceled' } })
       }
     }
-    // ثبت‌نام با شماره نامعتبر/ادمینی ممنوع است
+    // registering with the admin username / an invalid username is forbidden
     r = await req('POST', '/register', { body: { name: 'x', phone: '1111', password: '9999' } })
-    check('register با ۱۱۱۱ → 400 (ارتقای دسترسی مسدود)', r.status === 400, `status=${r.status}`)
-    r = await req('POST', '/register', { body: { name: 'x', phone: '0912', password: '9999' } })
-    check('register شماره ناقص → 400', r.status === 400)
-    // حذف اشتراک کاربر تست برای تمیزکاری مرحلهٔ بعد
+    check('register با ۱۱۱۱ → 401 (ارتقای دسترسی مسدود)', r.status === 401, `status=${r.status}`)
+    r = await req('POST', '/register', { body: { name: 'x', phone: 'a b', password: '9999' } })
+    check('register نام کاربری نامعتبر → 400', r.status === 400)
+    // remove the test user's subscription for the next stage's cleanup
     r = await req('DELETE', `/admin/users/${userId}/subscription`, { token: at })
     check('admin revoke subscription → ok', r.status === 200 && r.data.user?.subscription === null, JSON.stringify(r.data.user?.subscription))
-    // برگرداندن اشتراک برای تست‌های پایانی
+    // restore the subscription for the final tests
     await req('POST', `/admin/users/${userId}/subscription`, { token: at, body: { plan: 'monthly' } })
-    // ابطال نشست‌ها — توکن کاربر تست بعد از این دیگر کار نمی‌کند؛ دوباره لاگین می‌کنیم
+    // revoke sessions — the test user's token stops working after this; we log in again
     const rv = await req('POST', `/admin/users/${userId}/revoke-sessions`, { token: at })
     check('revoke-sessions → ok', rv.status === 200)
     const me2 = await req('GET', '/me', { token })
@@ -481,7 +459,7 @@ try {
     check('لاگین مجدد کاربر تست', relog.status === 200 && !!token)
   }
 
-  // ---------- پایداری آزمون‌های ازپیش‌ساخته بین ری‌استارت ----------
+  // ---------- prebuilt-exam persistence across restarts ----------
   section('پایداری آزمون‌ها بین ری‌استارت سرور')
   {
     srv.kill('SIGKILL')
@@ -496,7 +474,7 @@ try {
     )
   }
 
-  // ---------- خروج ----------
+  // ---------- logout ----------
   section('خروج')
   {
     let r = await req('POST', '/logout', { token })
@@ -510,7 +488,7 @@ try {
   restore()
 }
 
-// ---------- گزارش ----------
+// ---------- report ----------
 let fails = 0
 for (const r of results) {
   if (r.header) { console.log(`\n■ ${r.header}`); continue }

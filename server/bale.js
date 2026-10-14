@@ -56,6 +56,8 @@ export const answerPreCheckoutQuery = (id, ok, errorMessage) =>
     ...(ok ? {} : { error_message: errorMessage || 'خطا در پردازش سفارش' }),
   })
 
+export const getWebhookInfo = () => callApi('getWebhookInfo')
+
 export const inquireTransaction = (transactionId) =>
   callApi('inquireTransaction', { transaction_id: transactionId })
 

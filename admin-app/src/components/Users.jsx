@@ -134,12 +134,12 @@ export default function Users({ notify }) {
             <h3>کاربر جدید</h3>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               <input className="field" style={{ flex: 1, minWidth: 150, margin: 0 }} value={nName} onChange={(e) => setNName(e.target.value)} placeholder="نام و نام خانوادگی" required />
-              <input className="field ltr" style={{ flex: 1, minWidth: 140, margin: 0 }} value={nPhone} onChange={(e) => setNPhone(e.target.value)} placeholder="0912…" inputMode="numeric" required />
+              <input className="field ltr" style={{ flex: 1, minWidth: 140, margin: 0 }} value={nPhone} onChange={(e) => setNPhone(e.target.value)} placeholder="نام کاربری" required />
               <input className="field ltr" style={{ flex: 1, minWidth: 130, margin: 0 }} value={nPass} onChange={(e) => setNPass(e.target.value)} placeholder="رمز (اختیاری)" />
               <button className="btn" style={{ width: 'auto', padding: '9px 24px' }}>ساخت کاربر</button>
               <button type="button" className="mini" onClick={() => setAddOpen(false)}>انصراف</button>
             </div>
-            <div className="muted" style={{ marginTop: 6 }}>بدون رمز، کاربر فقط با کد پیامکی وارد می‌شود. اگر شماره تکراری باشد، همان کاربر موجود باز می‌شود.</div>
+            <div className="muted" style={{ marginTop: 6 }}>بدون رمز، کاربر نمی‌تواند وارد شود. اگر نام کاربری تکراری باشد، همان کاربر موجود باز می‌شود.</div>
           </form>
         )}
         <div className="sheet">
@@ -159,7 +159,7 @@ export default function Users({ notify }) {
                 <thead>
                   <tr>
                     <th className="rn"></th>
-                    <th>نام</th><th>موبایل</th><th title="وضعیت اشتراک"></th><th>اشتراک</th>
+                    <th>نام</th><th>نام کاربری</th><th title="وضعیت اشتراک"></th><th>اشتراک</th>
                     <th dir="ltr">XP</th><th>استریک</th><th>آزمون</th><th>آخرین فعالیت</th><th>عضویت</th><th>عملیات</th>
                   </tr>
                 </thead>
@@ -267,7 +267,7 @@ function Toolbar({ q, setQ, view, setView, exportCsv, addOpen, setAddOpen }) {
       <span className="tspacer" />
       <button className={`tbtn ${addOpen ? 'primary' : ''}`} onClick={() => setAddOpen((v) => !v)}><Icon n="plus" s={13} /> کاربر جدید</button>
       <span className="searchbox">
-        <input placeholder="جست‌وجوی نام یا موبایل…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <input placeholder="جست‌وجوی نام یا نام کاربری…" value={q} onChange={(e) => setQ(e.target.value)} />
         <span className="si"><Icon n="search" s={13} /></span>
       </span>
       <button className="tbtn" onClick={exportCsv}><Icon n="download" s={13} /> خروجی CSV</button>

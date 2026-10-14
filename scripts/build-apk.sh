@@ -11,7 +11,10 @@ API_URL="${1:-http://$(hostname -I | awk '{print $1}'):3001}"
 echo "==> API URL baked into app: $API_URL"
 
 echo "==> Building web assets"
-VITE_API_URL="$API_URL" npm --prefix "$ROOT/client" run build
+# Output goes to dist-apk (webDir in capacitor.config.json) so the web-app dist
+# served by the server is not overwritten with a baked-in API URL — the web app
+# keeps connecting to its own origin
+VITE_API_URL="$API_URL" npm --prefix "$ROOT/client" run build -- --outDir dist-apk --emptyOutDir
 
 echo "==> Syncing Capacitor"
 (cd "$ROOT/client" && npx cap sync android)

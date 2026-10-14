@@ -15,23 +15,14 @@ export function AuthProvider({ children }) {
       .finally(() => setLoading(false))
   }, [])
 
-  const requestOtp = (phone) =>
-    api('/otp/request', { method: 'POST', body: { phone } })
-
-  const verifyOtp = async (phone, code, name) => {
-    const d = await api('/otp/verify', { method: 'POST', body: { phone, code, name } })
+  const login = async (username, password) => {
+    const d = await api('/login', { method: 'POST', body: { phone: username, password } })
     setToken(d.token)
     setUser(d.user)
   }
 
-  const login = async (phone, password) => {
-    const d = await api('/login', { method: 'POST', body: { phone, password } })
-    setToken(d.token)
-    setUser(d.user)
-  }
-
-  const register = async (name, phone, password) => {
-    const d = await api('/register', { method: 'POST', body: { name, phone, password } })
+  const register = async (name, username, password) => {
+    const d = await api('/register', { method: 'POST', body: { name, phone: username, password } })
     setToken(d.token)
     setUser(d.user)
   }
@@ -60,7 +51,7 @@ export function AuthProvider({ children }) {
   const refresh = () => api('/me').then((d) => setUser(d.user)).catch(() => {})
 
   return (
-    <AuthCtx.Provider value={{ user, loading, requestOtp, verifyOtp, login, register, logout, setUser, refresh, updateProfile, updateAvatar, removeAvatar }}>
+    <AuthCtx.Provider value={{ user, loading, login, register, logout, setUser, refresh, updateProfile, updateAvatar, removeAvatar }}>
       {children}
     </AuthCtx.Provider>
   )
