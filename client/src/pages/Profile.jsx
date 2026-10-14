@@ -5,29 +5,10 @@ import { api, apiUrl, openExternal } from '../lib/api.js'
 import { useAuth } from '../lib/auth.jsx'
 import { APP_VERSION, compareVersions, UPCOMING } from '../lib/release.js'
 import { levelOf } from '../lib/levels.js'
+import AvatarEditor from '../components/AvatarEditor.jsx'
 
 const toFa = (n) => (Number.isFinite(Number(n)) ? Number(n).toLocaleString('fa-IR') : '۰')
 const toFaDate = (ts) => new Date(ts).toLocaleDateString('fa-IR', { year: 'numeric', month: 'long', day: 'numeric' })
-
-// عکس انتخابی را مربعی کراپ و به JPEG کوچک تبدیل می‌کند تا آپلود سبک شود
-const AVATAR_SIZE = 320
-const toAvatarDataUrl = (file) =>
-  new Promise((resolve, reject) => {
-    const img = new Image()
-    img.onload = () => {
-      const s = Math.min(img.width, img.height)
-      const c = document.createElement('canvas')
-      c.width = c.height = AVATAR_SIZE
-      c.getContext('2d').drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, AVATAR_SIZE, AVATAR_SIZE)
-      URL.revokeObjectURL(img.src)
-      resolve(c.toDataURL('image/jpeg', 0.85))
-    }
-    img.onerror = () => {
-      URL.revokeObjectURL(img.src)
-      reject(new Error('عکس قابل خواندن نیست'))
-    }
-    img.src = URL.createObjectURL(file)
-  })
 
 export default function Profile() {
   const { user, logout, updateProfile, updateAvatar, removeAvatar, refresh } = useAuth()
@@ -42,6 +23,7 @@ export default function Profile() {
   const [editError, setEditError] = useState('')
   const [avatarBusy, setAvatarBusy] = useState(false)
   const [avatarError, setAvatarError] = useState('')
+  const [editorSrc, setEditorSrc] = useState(null) // object URL عکس انتخابی در ویرایشگر
   const fileRef = useRef(null)
 
   useEffect(() => {
@@ -69,7 +51,8 @@ export default function Profile() {
     setEditOpen(true)
   }
 
-  const onPickAvatar = async (e) => {
+  // انتخاب فایل فقط ویرایشگر را باز می‌کند؛ آپلود پس از تایید کراپ انجام می‌شود
+  const onPickAvatar = (e) => {
     const file = e.target.files?.[0]
     e.target.value = '' // انتخاب دوبارهٔ همان فایل هم change بدهد
     if (!file || avatarBusy) return
@@ -77,12 +60,25 @@ export default function Profile() {
       setAvatarError('فقط فایل تصویری قابل قبول است')
       return
     }
+    setAvatarError('')
+    setEditorSrc(URL.createObjectURL(file))
+  }
+
+  const closeEditor = () => {
+    if (editorSrc) URL.revokeObjectURL(editorSrc)
+    setEditorSrc(null)
+  }
+
+  const onEditorConfirm = async (dataUrl) => {
+    if (avatarBusy) return
     setAvatarBusy(true)
     setAvatarError('')
     try {
-      await updateAvatar(await toAvatarDataUrl(file))
+      await updateAvatar(dataUrl)
+      closeEditor()
     } catch (err) {
       setAvatarError(err.message)
+      closeEditor()
     } finally {
       setAvatarBusy(false)
     }
@@ -356,6 +352,11 @@ export default function Profile() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* ویرایشگر عکس — کراپ/جابه‌جایی/زوم قبل از آپلود */}
+      {editorSrc && (
+        <AvatarEditor src={editorSrc} busy={avatarBusy} onCancel={closeEditor} onConfirm={onEditorConfirm} />
       )}
 
       {/* پاپ‌آپ به‌روزرسانی و نسخه‌های بعدی */}

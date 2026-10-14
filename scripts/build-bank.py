@@ -24,11 +24,39 @@ ROOT = Path(__file__).resolve().parents[2]
 SRC = ROOT / 'sample-questions'
 OUT = Path(__file__).resolve().parent / '..' / 'server' / 'bank.json'
 
+# ارجاع صفحهٔ کتاب: (ص ۴۴۸) | ص 109 | ص۱۶۶ | صفحهٔ ۱۲ | ص۳۷ کتاب | و۳۷کتاب
+PAGE_WORD = r'(?:ص{1,2}|صفح(?:ه|ات))'
+PAGE_REF = PAGE_WORD + r'[ٔ‌]?[\s.:：]*[0-9۰-۹]+(?:\s*[-–—][0-9۰-۹]+)?(?:\s*کتاب)?'
+
 def norm(s):
     s = unicodedata.normalize('NFKC', s or '')
     s = s.replace('ي', 'ی').replace('ك', 'ک')
     s = re.sub(r'\s*@\S*', ' ', s)  # ایدی تلگرامی دنبالهٔ برخی کوئیزهای دامپ‌شده
-    s = re.sub(r'\s*صفحه?\s*[\.:]?\s*[0-9۰-۹]+\s*(?:کتاب)?', ' ', s)  # ارجاع صفحه کتاب
+    s = re.sub(r'[✅✔☑✓]', ' ', s)  # تیک گزینهٔ صحیح در دامپ کانال‌ها
+    s = re.sub(r'\s*[\(\[]\s*' + PAGE_REF + r'\s*[\)\]]', ' ', s)
+    s = re.sub(r'(?<![^\s\(\[\{،:؛؟?.\-])' + PAGE_REF + r'\s*[\)\]]?', ' ', s)
+    s = re.sub(r'\s*و?\s*[0-9۰-۹]+\s*کتاب', ' ', s)
+    s = re.sub(r'^\s*(الف|ب|ج|د)\s*[)．\.:：-]\s*', '', s)  # برچسب گزینه داخل متن دامپ
+    s = re.sub(r'^\s*سوال\s*[:：]\s*', '', s)
+    return re.sub(r'\s+', ' ', s).strip()
+
+# برچسب انتساب درس/آزمون در ابتدای متن سوال: «(آناتومی)» «(سوال آزمون فیزیولوژی ۱۴ دی ۱۴۰۳ بدنسازی)»
+LEAD_TAG_WORDS = re.compile(
+    r'سوال|آزمون|درجه|بدنسازی|فیتنس|آناتومی|فیزیولوژی|تغذیه|تمرین|تست|ارزیابی|'
+    r'بانوان|آقایان|مربیگری|کتبی|تخصصی|پیکری|اسفند|اردیبهشت|خرداد|تیر|مرداد|'
+    r'شهریور|مهر|آبان|آذر|دی|بهمن|فروردین|تهران|کرمان|گرمسار|اردبیل|مشهد|شیراز|'
+    r'اصفهان|تبریز|قم|اهواز|یزد|کرج|رشت|ساری|همدان|اراک|زنجان|سنندج|بوشهر')
+
+def norm_q(s):
+    """متن صورت‌سوال: علاوه‌بر norm، برچسب درس/آزمون و شمارهٔ سوال ابتدای متن هم حذف می‌شود."""
+    s = norm(s)
+    for _ in range(3):
+        m = re.match(r'^\s*[\(\[][^()\[\]]{1,90}[\)\]]', s)
+        if not m or not LEAD_TAG_WORDS.search(m.group(0)):
+            break
+        s = s[m.end():]
+    # شمارهٔ سوال ابتدایی: «۶-نقش…» «شماره 3- …» «۸) کدام…»
+    s = re.sub(r'^\s*(?:شماره\s*)?[0-9۰-۹]{1,3}\s*[-).،:：]\s*(?=[^0-9۰-۹\s])', '', s)
     return re.sub(r'\s+', ' ', s).strip()
 
 LETTER_TO_IDX = {'الف': 0, 'ب': 1, 'ج': 2, 'د': 3}
@@ -123,7 +151,7 @@ def from_json():
             continue
         out.append({
             'section': sec,
-            'q': norm(x['q']),
+            'q': norm_q(x['q']),
             'options': [norm(o) for o in opts],
             'answer': ans,
             'explanation': norm(x.get('explanation', '')) or 'این سوال به مفاهیم پایه این بخش مربوط می‌شود.',
@@ -143,7 +171,7 @@ def from_telegram():
             lines = [norm(l) for l in blk.split('\n') if l.strip()]
             if not lines:
                 continue
-            q = lines[0]
+            q = norm_q(lines[0])
             opts = {}
             marked = None
             for l in lines[1:]:
@@ -182,7 +210,7 @@ def from_old():
     for x in d:
         rec = {
             'section': OLD_SECTION_MAP.get(x['sectionId'], classify(x['question'], x['options'])),
-            'q': norm(x['question']),
+            'q': norm_q(x['question']),
             'options': [norm(o) for o in x['options']],
             'answer': x['answer'],
             'explanation': norm(x.get('explanation', '')),
@@ -226,7 +254,7 @@ def from_theory():
                         topics.append(extra)
             out.append({
                 'section': TOPIC_TO_SECTION.get(topics[0], classify(x['q'], x['options'])) if topics else classify(x['q'], x['options']),
-                'q': norm(x['q']),
+                'q': norm_q(x['q']),
                 'options': [norm(o) for o in opts],
                 'answer': ans,
                 'explanation': norm(x.get('explanation', '')) or 'بر اساس جزوه تیوری مربیگری.',
@@ -288,23 +316,23 @@ def from_tgquiz():
                 opts = [o['text'] for o in q['options']]
                 out.append({
                     'section': classify(q['question'], opts),
-                    'q': norm(q['question']),
+                    'q': norm_q(q['question']),
                     'options': [norm(o) for o in opts],
                     'answer': opts.index(best['text']),
                     'explanation': 'بر اساس نمونه سوالات پرتکرار آزمون‌های مربیگری (رأی اکثریت شرکت‌کنندگان کانال).',
                     'difficulty': 'متوسط',
-                    'source': f'telegram:@{ch}',
+                    'source': f'telegram:{ch}',
                 })
             elif '✅' in (p.get('text') or ''):
                 for x in parse_marked_questions(p['text']):
                     out.append({
                         'section': classify(x['q'], x['options']),
-                        'q': norm(x['q']),
+                        'q': norm_q(x['q']),
                         'options': [norm(o) for o in x['options']],
                         'answer': x['answer'],
                         'explanation': 'از آزمون کتبی برگزارشده (پاسخ علامت‌خورده در کانال).',
                         'difficulty': 'متوسط',
-                        'source': f'telegram:@{ch}',
+                        'source': f'telegram:{ch}',
                     })
     return out
 
@@ -319,7 +347,7 @@ def from_fedaks():
                 continue
             out.append({
                 'section': classify(x['q'], x['options']),
-                'q': norm(x['q']),
+                'q': norm_q(x['q']),
                 'options': [norm(o) for o in opts],
                 'answer': ans,
                 'explanation': norm(x.get('explanation', '')) or 'از آزمون کتبی برگزارشده.',

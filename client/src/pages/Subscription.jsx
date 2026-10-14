@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowRight, Check, Crown, LifeBuoy, Loader2, Sparkles, Wallet } from 'lucide-react'
-import { api, openExternal } from '../lib/api.js'
+import { ArrowRight, Check, CloudOff, Crown, LifeBuoy, Loader2, Sparkles, Wallet } from 'lucide-react'
+import { api, apiMode, openExternal } from '../lib/api.js'
 import { useAuth } from '../lib/auth.jsx'
 
 const toFaDate = (ts) => new Date(ts).toLocaleDateString('fa-IR', { year: 'numeric', month: 'long', day: 'numeric' })
@@ -30,7 +30,12 @@ export default function Subscription() {
   const nav = useNavigate()
   const [subscribing, setSubscribing] = useState(null)
   const [pending, setPending] = useState(null) // { orderId, payUrl }
+  const [demo, setDemo] = useState(false)
   const pollRef = useRef(null)
+
+  useEffect(() => {
+    apiMode().then((m) => setDemo(m === 'demo')).catch(() => {})
+  }, [])
 
   const sub = user?.subscription
   const subActive = sub && sub.until > Date.now()
@@ -103,6 +108,16 @@ export default function Subscription() {
       <button onClick={() => nav('/profile')} className="on-photo flex items-center gap-1.5 text-sm hover:text-slate-800">
         <ArrowRight className="size-4" /> بازگشت
       </button>
+
+      {/* هشدار حالت دمو — خرید در این حالت واقعی نیست */}
+      {demo && (
+        <div className="card p-4 border-amber-500/30 bg-amber-500/10 flex items-start gap-3 animate-pop">
+          <CloudOff className="size-5 text-amber-600 shrink-0 mt-0.5" />
+          <p className="text-xs text-amber-800 leading-6">
+            اپ در <b>حالت نمایشی (آفلاین)</b> است — اتصال به سرور برقرار نشده و این اشتراک فقط برای امتحان روی همین دستگاه فعال می‌شود؛ پرداخت واقعی انجام نمی‌شود.
+          </p>
+        </div>
+      )}
 
       {/* وضعیت فعلی */}
       {subActive && (

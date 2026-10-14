@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { BarChart3, Home, UserRound } from 'lucide-react'
+import { BarChart3, CloudOff, Home, UserRound } from 'lucide-react'
+import { apiMode } from '../lib/api.js'
 
 // رتبه‌بندی فعلاً از ناوبری حذف شده — در نقشهٔ توسعه (نسخه‌های بعدی) برمی‌گردد
 const TABS = [
@@ -12,6 +14,16 @@ export default function Layout() {
   const nav = useNavigate()
   const loc = useLocation()
   const inQuiz = loc.pathname.includes('/quiz')
+  const [demo, setDemo] = useState(false)
+
+  // نشان حالت دمو — وقتی سرور در دسترس نیست دیتای واقعی ثبت نمی‌شود و خرید شبیه‌سازی است
+  useEffect(() => {
+    let alive = true
+    const check = () => apiMode().then((m) => alive && setDemo(m === 'demo')).catch(() => {})
+    check()
+    const t = setInterval(check, 15000)
+    return () => { alive = false; clearInterval(t) }
+  }, [])
 
   return (
     <div className="min-h-dvh relative overflow-x-hidden">
@@ -26,6 +38,11 @@ export default function Layout() {
                   className="size-9 drop-shadow-[0_3px_10px_rgba(0,200,253,0.45)] transition-transform group-active:scale-95"
                 />
                 <span dir="ltr" className="font-extrabold text-base tracking-tight text-slate-800">OlyxTest</span>
+                {demo && (
+                  <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.5 text-[9px] font-bold text-amber-700">
+                    <CloudOff className="size-3" /> نسخهٔ نمایشی
+                  </span>
+                )}
               </button>
             </div>
           </header>

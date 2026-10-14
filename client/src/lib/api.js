@@ -42,6 +42,9 @@ async function resolveMode() {
   return mode
 }
 
+// برای نمایش نشان «نسخهٔ نمایشی» در UI — وقتی سرور در دسترس نیست کل اپ روی دیتای محلی می‌چرخد
+export const apiMode = () => resolveMode()
+
 export async function api(path, { method = 'GET', body } = {}) {
   if ((await resolveMode()) === 'demo') {
     const { demoApi } = await import('./demo.js')
